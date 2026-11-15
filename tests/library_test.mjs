@@ -376,7 +376,7 @@ async function hub({ quarantine = ["passport"], roots, estateStore = tmp() }) {
     const res = await fetch(base + p, body ? { method: "POST", body: JSON.stringify(body) } : {});
     return { status: res.status, text: await res.text() };
   };
-  return { call, estateStore, close: () => new Promise((r) => server.close(r)) };
+  return { call, estateStore, home, close: () => new Promise((r) => server.close(r)) };
 }
 
 test("the hub catalogues on request, shows the duplicates, and serves them as CSV", async () => {
@@ -1028,13 +1028,18 @@ test("Scenario: the query routes refuse without a policy, and say when the store
     await open.close();
   }
 
-  // ESTATE_STORE unset: said, not guessed, and nothing is read from a built-in path
+  // ESTATE_STORE unset. AMENDED BY U1 (signed point 4): a machine with no store keeps its catalogues
+  // on itself, in BENNY_HOME (the ASUS), so the routes answer from there - never from a built-in path
   const unset = await hub({ roots: [root], estateStore: "" });
   try {
     const r = await unset.call(`/library/find?root=${encodeURIComponent(root)}&q=holiday`);
-    assert.equal(r.status, 503);
-    assert.match(JSON.parse(r.text).error, /ESTATE_STORE is not set/u);
-    assert.match(JSON.parse(r.text).error, /node space set/u, "it says how to set it");
+    assert.notEqual(r.status, 503, r.text);
+    assert.doesNotMatch(r.text, /ESTATE_STORE is not set/u);
+    assert.equal((await unset.call("/library", { root })).status, 202);
+    for (let i = 0; i < 400 && JSON.parse((await unset.call("/library")).text).running; i++)
+      await new Promise((done) => setTimeout(done, 10));
+    const placed = fs.readdirSync(path.join(unset.home, "estate", "library"));
+    assert.ok(placed.some((f) => f.endsWith(".db")), "the catalogue is on the machine, in BENNY_HOME");
     // the paired positive: with a store configured the same request is answered. Closed, or the
     // listening server keeps the test process alive for ever.
     const configured = await hub({ roots: [root] });
@@ -1203,7 +1208,8 @@ test("S22-D3: an unset store cannot kill the hub through the comparer", async ()
     // whatever it answers, it must ANSWER: a thrown lookup used to take the process with it
     assert.ok([202, 409, 412, 503].includes(r.status), `compare answered ${r.status}: ${r.text}`);
     // and the hub is still alive afterwards
-    assert.equal((await h.call("/library")).status, 503, "the hub still serves requests");
+    // U1: with no store the library answers from BENNY_HOME rather than refusing
+    assert.equal((await h.call("/library")).status, 200, "the hub still serves requests");
     // let the comparison it started finish INSIDE the test: its result is written asynchronously,
     // and a temp tree removed under it throws after the test has ended, which node reports as an
     // unhandled rejection against the whole file

@@ -172,7 +172,9 @@ window.estateMapPage = function estateMapPage() {
         this.lib = libraryView(null);
       }
       clearTimeout(cataloguing);
-      if (this.lib.running) cataloguing = setTimeout(() => this.refreshLibrary(), SWEEP_WATCH_MS);
+      // U1: and while Catalogue my data has roots still waiting, between one pass and the next
+      if (this.lib.running || (this.lib.queue && !this.lib.all))
+        cataloguing = setTimeout(() => this.refreshLibrary(), SWEEP_WATCH_MS);
     },
 
     // A POST to the library or a Stop; an error answer is shown beside the button that was pressed.
@@ -194,6 +196,10 @@ window.estateMapPage = function estateMapPage() {
     },
     catalogueRoot(root) {
       return this.ask("/api/estate/library", { root }, "libraryError", () => this.refreshLibrary());
+    },
+    // U1: every offered root in the owner's order, one pass at a time; Stop clears the queue
+    catalogueAll() {
+      return this.ask("/api/estate/library/all", {}, "libraryError", () => this.refreshLibrary());
     },
     stopLibrary() {
       return this.ask("/api/estate/library/stop", {}, "libraryError", () => this.refreshLibrary());

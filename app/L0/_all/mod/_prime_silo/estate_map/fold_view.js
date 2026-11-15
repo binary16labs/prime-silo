@@ -511,14 +511,18 @@ export function compareView(s, { now = Date.now() } = {}) {
     const unsure = r.unconfirmed.files ? ` ${n(r.unconfirmed.files)} unconfirmed.` : "";
     const unread = r.unreadable.files ? ` ${n(r.unreadable.files)} could not be read.` : "";
     const against = r.catalogueAt ? ` Against the catalogue of ${s.to} from ${ago(r.catalogueAt)}.` : "";
+    // U1: a user root is named, and its result reads as the owner asked: in Downloads, not on F:
+    const role = s.labels?.[drive];
+    const only = role ? `In ${nameOf(role, drive)}, not on ${s.to}:` : `Only on ${drive}:`;
     return (
       `Compared ${ago(r.at)}: ${n(r.drive.files)} files, ${bytes(r.drive.bytes)}. ` +
-      `Only on ${drive}: ${n(r.onlyHere.files)} files, ${bytes(r.onlyHere.bytes)}${priv}. ` +
+      `${only} ${n(r.onlyHere.files)} files, ${bytes(r.onlyHere.bytes)}${priv}. ` +
       `Already on ${s.to}, by full hash: ${n(r.onTarget.files)}.${unsure}${unread}${against}`
     );
   };
   const drives = Object.entries(s.results ?? {}).map(([drive, r]) => ({
     drive,
+    name: nameOf(s.labels?.[drive], drive),
     line: line(drive, r),
     folders: r?.ok ? r.folders.map((f) => ({ folder: f.folder, line: `${n(f.files)} files · ${bytes(f.bytes)}` })) : [],
     csv: r?.ok && r.listed ? `/api/estate/compare.csv?from=${encodeURIComponent(drive)}&to=${encodeURIComponent(s.to)}` : null
@@ -539,15 +543,70 @@ export function compareView(s, { now = Date.now() } = {}) {
 
 // F:'s catalogue in words: the last pass, the one running (with a Stop), what kinds of file it holds,
 // and its duplicates. A stopped pass says that Catalogue resumes it; a private copy is counted only.
+// U1: a user root is named by what it is, never by its path
+const ROLE = {
+  downloads: "Downloads",
+  onedrive: "OneDrive",
+  documents: "Documents",
+  desktop: "Desktop",
+  pictures: "Pictures",
+  music: "Music",
+  videos: "Videos",
+  added: "Added folder"
+};
+const nameOf = (role, root) => (role ? (ROLE[role] ?? role) : root);
+
 export function libraryView(s, { now = Date.now() } = {}) {
   const ago = (iso) => `${ageLabel(now - (Date.parse(iso ?? "") || NaN))} ago`;
   const n = (x) => (Number(x) || 0).toLocaleString();
-  const off = (why) => ({ can: false, why, root: null, line: null, running: null, kinds: [], dups: null, top: [], csv: null });
+  const off = (why) => ({ can: false, why, root: null, line: null, running: null, kinds: [], dups: null, top: [], csv: null, shelf: [], all: false, queue: null });
   if (!s || typeof s !== "object") return off("The hub did not say whether this machine can catalogue.");
   if (s.error) return off(`This machine cannot catalogue: ${s.error}.`);
   if (s.policy !== true)
     return off("Cataloguing is off: there is no quarantine policy, so private files could be listed.");
-  if (!(s.roots ?? []).includes("F:")) return off("There is no F: on this machine to catalogue.");
+  // U1: EVERY ROOT THIS MACHINE OFFERS, in the owner's order: Downloads first, OneDrive holding its
+  // sections, then the data drives. Each says where it stands; one press catalogues them all.
+  const q = s.queue ?? null;
+  const named = (root) => {
+    const e = (s.offered ?? []).find((x) => x.root === root);
+    return e ? nameOf(e.role, root) : root;
+  };
+  const shelf = (s.offered ?? []).map((e) => {
+    const c = s.catalogues?.[e.root] ?? null;
+    const p = c?.last;
+    const skipped = q?.done?.find((d) => d.root === e.root && d.why);
+    const state =
+      s.running?.root === e.root
+        ? "Cataloguing now."
+        : q?.waiting?.includes(e.root)
+          ? "Waiting in the queue."
+          : skipped
+            ? `Skipped: ${skipped.why}.`
+            : "";
+    const at = !c
+      ? "Never catalogued."
+      : p?.finished_at
+        ? `Catalogued ${ago(p.finished_at)}: ${n(c.files)} files, ${bytes(c.bytes)}.`
+        : `Not finished after ${n(p?.seen)} files.`;
+    const cloud = p?.online_only ? ` ${n(p.online_only)} files are only in OneDrive's cloud: listed, never opened.` : "";
+    return {
+      root: e.root,
+      name: nameOf(e.role, e.root),
+      sections: (e.sections ?? []).map((x) => nameOf(x, x)),
+      line: `${state ? `${state} ` : ""}${at}${cloud}`
+    };
+  });
+  const more = {
+    shelf,
+    all: !s.running && (!q || q.finished) && shelf.length > 0,
+    queue: !q
+      ? null
+      : q.finished
+        ? `Catalogue my data finished: ${n(q.done.filter((d) => !d.why).length)} catalogued, ${n(q.done.filter((d) => d.why).length)} skipped.`
+        : `Catalogue my data: ${n(q.done.length)} done, ${n(q.waiting.length)} waiting.`
+  };
+  if (!(s.roots ?? []).includes("F:"))
+    return { ...off(shelf.length ? null : "There is no F: on this machine to catalogue."), ...more, can: !s.running };
   const c = s.catalogues?.["F:"] ?? null;
   const p = c?.last;
   const failed = s.last?.root === "F:" && s.last.failed ? ` The last pass failed: ${s.last.failed}` : "";
@@ -584,12 +643,13 @@ export function libraryView(s, { now = Date.now() } = {}) {
       : ", no estimate until a pass has finished";
   const d = c?.duplicates;
   return {
+    ...more,
     can: !r,
     why: null,
     root: "F:",
     line,
     running: r
-      ? `Cataloguing ${r.root}${r.started_by === "schedule" ? " (started by the schedule)" : ""}: ${n(r.seen)} files read, ${n(r.hashed)} hashed (${bytes(r.bytes_hashed)}), ` +
+      ? `Cataloguing ${named(r.root)}${r.started_by === "schedule" ? " (started by the schedule)" : ""}: ${n(r.seen)} files read, ${n(r.hashed)} hashed (${bytes(r.bytes_hashed)}), ` +
         `${Math.round(r.rate || 0)} files/s${eta}. Started ${ago(r.since)}.`
       : null,
     kinds: (c?.kinds ?? []).map((k) => ({ kind: k.kind, line: `${n(k.files)} files · ${bytes(k.bytes)}` })),

@@ -22,6 +22,7 @@ import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
+import { spawn as spawnFile } from "node:child_process";
 import { appendKelEvents, ulid, CURRENT_SCHEMA_VERSION } from "./kel.mjs";
 import { artifactPlacedEvent, artifactEvictedEvent } from "./artifacts.mjs";
 import { hashFile } from "./nas_catalog.mjs";
@@ -171,7 +172,49 @@ export function openLibrary(dbPath) {
     db.exec("ALTER TABLE passes ADD COLUMN walk_reason TEXT");
   if (!cols("passes").includes("started_by"))
     db.exec("ALTER TABLE passes ADD COLUMN started_by TEXT NOT NULL DEFAULT 'owner'");
+  // U1: a file only in OneDrive's cloud is listed here and never in `files`: it has no fingerprint,
+  // because making one would open it, and opening it makes OneDrive download it
+  db.exec(`CREATE TABLE IF NOT EXISTS online_only (
+    path TEXT PRIMARY KEY, size INTEGER NOT NULL, mtime_ms INTEGER NOT NULL, run TEXT NOT NULL)`);
+  if (!cols("passes").includes("online_only"))
+    db.exec("ALTER TABLE passes ADD COLUMN online_only INTEGER NOT NULL DEFAULT 0");
   return db;
+}
+
+// U1: WHICH FILES ARE ONLY IN THE CLOUD, from the directory listing's attributes (offline, recall on
+// open, recall on data access), which never opens a file. OneDrive's Pictures on the T480: 2,583 of
+// 4,457 (2026-11-15). A folder the listing could not read is `unknown`, and nothing in it is read.
+const CLOUD_SCRIPT = [
+  "[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)",
+  "Get-ChildItem -LiteralPath $env:U1_ROOT -Recurse -File -Force -ErrorAction SilentlyContinue -ErrorVariable bad |",
+  '  ForEach-Object { if (([int64]$_.Attributes -band 0x441000) -ne 0) { "C`t" + $_.FullName } }',
+  'foreach ($e in $bad) { "E`t" + $(if ($e.TargetObject) { $e.TargetObject } else { $env:U1_ROOT }) }'
+].join("\n");
+export function windowsCloudOnly(root, { spawn = spawnFile } = {}) {
+  return new Promise((resolve, reject) => {
+    const cloud = new Set();
+    const unknown = [];
+    let tail = "";
+    const p = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", CLOUD_SCRIPT], {
+      env: { ...process.env, U1_ROOT: fullOf(root, "") },
+      windowsHide: true
+    });
+    const take = (line) => {
+      const [k, full] = [line.slice(0, 1), line.slice(2).replace(/\r$/u, "")];
+      if (k === "C") cloud.add(fold(full));
+      else if (k === "E") unknown.push(fold(full));
+    };
+    p.stdout.setEncoding("utf8").on("data", (s) => {
+      const lines = (tail + s).split("\n");
+      tail = lines.pop();
+      lines.forEach(take);
+    });
+    p.on("error", reject);
+    p.on("close", (code) => {
+      if (tail) take(tail);
+      return code === 0 ? resolve({ cloud, unknown }) : reject(new Error(`the listing exited ${code}`));
+    });
+  });
 }
 
 // Folder order: a folder's files as the walk meets them, then its subfolders in listed order. A folder
@@ -291,8 +334,28 @@ export async function catalogue({
   lister = null,
   walkDays = 7,
   startedBy = "owner",
-  stat = (p) => fsp.stat(p)
+  stat = (p) => fsp.stat(p),
+  // U1: (root) => { cloud, unknown } folded paths, asked before anything is opened
+  cloudOnly = null
 }) {
+  let probe = null;
+  if (cloudOnly) {
+    try {
+      probe = await cloudOnly(root);
+    } catch (e) {
+      throw new Error(
+        `Windows could not say which files in ${root} are only in the cloud, so nothing was read: ${e?.message || e}`
+      );
+    }
+  }
+  const cloudy = (full) => {
+    if (!probe) return null;
+    const f = fold(full);
+    if (probe.cloud.has(f)) return "cloud";
+    return probe.unknown.some((d) => f === d || f.startsWith(d.endsWith(path.sep) ? d : d + path.sep))
+      ? "unknown"
+      : null;
+  };
   const db = openLibrary(dbPath);
   const logFile = dbPath.replace(/\.db$/u, ".jsonl");
   const isPrivate = privateTo(rules);
@@ -331,13 +394,16 @@ export async function catalogue({
       INSERT INTO files (path, size, mtime_ms, sha256, kind, first_seen, last_seen, run) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(path) DO UPDATE SET size = excluded.size, mtime_ms = excluded.mtime_ms,
         sha256 = excluded.sha256, kind = excluded.kind, last_seen = excluded.last_seen, run = excluded.run`);
+    const offline = db.prepare(`INSERT INTO online_only (path, size, mtime_ms, run) VALUES (?, ?, ?, ?)
+      ON CONFLICT(path) DO UPDATE SET size = excluded.size, mtime_ms = excluded.mtime_ms, run = excluded.run`);
     const c = {
       seen: 0,
       hashed: pass.hashed,
       bytes_hashed: pass.bytes_hashed,
       pending: 0,
       unreadable: 0,
-      unreadable_dirs: 0
+      unreadable_dirs: 0,
+      online_only: 0
     };
     // the last finished pass's count, if there is one: rows committed so far are not the drive
     const estimate =
@@ -400,7 +466,7 @@ export async function catalogue({
         throw new Error(`library event log append failed: ${appended.reason}`);
       }
       db.prepare(
-        "UPDATE passes SET seen = ?, hashed = ?, bytes_hashed = ?, pending = ?, unreadable = ?, unreadable_dirs = ?, digest = ? WHERE id = ?"
+        "UPDATE passes SET seen = ?, hashed = ?, bytes_hashed = ?, pending = ?, unreadable = ?, unreadable_dirs = ?, online_only = ?, digest = ? WHERE id = ?"
       ).run(
         c.seen,
         c.hashed,
@@ -408,6 +474,7 @@ export async function catalogue({
         c.pending,
         c.unreadable,
         c.unreadable_dirs,
+        c.online_only,
         digest,
         pass.id
       );
@@ -449,8 +516,15 @@ export async function catalogue({
             .then(stat)
             .catch(() => null);
       const mtime = st ? Math.floor(st.mtimeMs) : 0;
+      const where = cloudy(f.full);
       if (st && before && before.size === st.size && before.mtime_ms === mtime) {
         touch.run(run, iso(), rel); // unchanged, or committed before a stop: never read twice
+      } else if (where === "cloud" && st) {
+        c.online_only++; // U1: listed by name, size and date, and never opened
+        offline.run(rel, st.size, mtime, run);
+      } else if (where) {
+        c.unreadable++; // U1: the probe could not see this folder, so its files are not read
+        if (before) touch.run(run, iso(), rel);
       } else if (!st || PARTIAL_NAME.test(f.name) || now() - mtime < SETTLE_MS) {
         if (!st) guard();
         c.pending++;
@@ -500,6 +574,7 @@ export async function catalogue({
       if (baseline && !isPrivate(evtPath(g.path)))
         events.push(evicted(g.path, g.sha256, "removed"));
     db.prepare("DELETE FROM files WHERE run != ?").run(run);
+    db.prepare("DELETE FROM online_only WHERE run != ?").run(run);
     db.prepare(
       "UPDATE passes SET finished_at = ?, stopped_at = NULL, removed = ? WHERE id = ?"
     ).run(iso(), gone.length, pass.id);
@@ -1506,8 +1581,24 @@ export function createLibrarian({
   retryMs = 60_000,
   // S23: Everything when the hub has it; walkDays bounds how long listings run without a full walk
   lister = null,
-  walkDays = 7
+  walkDays = 7,
+  // U1: catalogues live in more than one place; `placeFor` says where a NEW one goes, lookups check
+  // every place first. `cloudOnlyFor(root)` is the root's cloud probe, or null.
+  also = [],
+  placeFor = () => dir,
+  cloudOnlyFor = () => null
 }) {
+  const dirs = [dir, ...also];
+  const dbFor = (root) => {
+    const id = rootIdentity(root);
+    if (!id) return null;
+    const found = dirs.map((d) => libraryPathFor(d, id)).find((p) => fs.existsSync(p));
+    return found ?? libraryPathFor(placeFor(root), id);
+  };
+  const resolveIn = (root) => {
+    const all = dirs.map((d) => catalogueFor(d, root));
+    return all.find((r) => r.ambiguous || (r.db && fs.existsSync(r.db))) ?? all[0];
+  };
   let running = null;
   let last = null;
   let ctl = null;
@@ -1570,7 +1661,7 @@ export function createLibrarian({
   // A drive that is not there has no pass to read from the hub's point of view, but its catalogue
   // still holds one. Read it, and trust the rollup's own key rather than recomputing a current one.
   const detached = (root) => {
-    const resolved = catalogueFor(dir, root);
+    const resolved = resolveIn(root);
     if (resolved.ambiguous) return { refused: resolved.ambiguous };
     const db = resolved.db;
     if (!db || !fs.existsSync(db)) return null;
@@ -1591,7 +1682,7 @@ export function createLibrarian({
     return { db, pass, key, stored, had: saved(db), byName: resolved.byName };
   };
   const current = (root) => {
-    const db = libraryPath(dir, root);
+    const db = dbFor(root);
     const pass = db && passOf(db);
     if (!pass) return null;
     const key = keyOf(pass);
@@ -1607,10 +1698,12 @@ export function createLibrarian({
     return { db, pass, key, had };
   };
   return {
+    // U1: where this root's catalogue is, or would be - for the schedule and the drives route
+    dbFor,
     status: () => ({ running: running && { ...running }, last }),
-    lookup: (root) => catalogueLookup(libraryPath(dir, root), root),
+    lookup: (root) => catalogueLookup(dbFor(root), root),
     // S22: the agent's questions go through the same rules as the panel's, in one place
-    find: (root, opts) => findFiles(libraryPath(dir, root), root, rules, opts),
+    find: (root, opts) => findFiles(dbFor(root), root, rules, opts),
     // S26: where the copies of one folder's content are. Asked for on demand, because it is a
     // query over that folder's own subtree rather than a stored figure — storing it for every
     // folder is what took 45 minutes on the real F:.
@@ -1689,13 +1782,13 @@ export function createLibrarian({
     // audit is through here.
     audit(root, info, to = null) {
       if (to !== null && !stillListening(to)) return false;
-      const db = libraryPath(dir, root);
+      const db = dbFor(root);
       if (!db) return false;
       const pass = (passOf(db)?.last?.id ?? null) || null;
       const evt = libraryQueriedEvent({ machine, root, pass, ...info });
       return appendKelEvents(`${db.slice(0, -3)}.jsonl`, [evt]).ok;
     },
-    check: (root, opts) => checkPaths(libraryPath(dir, root), root, rules, opts),
+    check: (root, opts) => checkPaths(dbFor(root), root, rules, opts),
     // Sets beyond the panel's top ten, from the list the WORKER already wrote for this pass and
     // policy. Never recomputed here: that is ~90 s on the real F:, on the hub's thread - D3.
     duplicatesPage(root, { offset = 0, limit = 20 } = {}) {
@@ -1769,7 +1862,7 @@ export function createLibrarian({
     // here, so the two can never run at once, and Stop stops either
     start(root, { startedBy = "owner" } = {}) {
       if (running) return { started: false, since: running.since };
-      const dbPath = libraryPath(dir, root);
+      const dbPath = dbFor(root);
       if (!dbPath) return { started: false, since: null, reason: `${root} cannot be read` };
       ctl = new AbortController();
       running = {
@@ -1784,7 +1877,8 @@ export function createLibrarian({
       const done = catalogue({
         root,
         dbPath,
-        skip: [dir, ...skip],
+        skip: [...dirs, ...skip],
+        cloudOnly: cloudOnlyFor(root),
         rules,
         hash,
         lister,

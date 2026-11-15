@@ -600,7 +600,7 @@ test("the panel reads the map from the estate map API, and talks to nothing but 
   // §5: the panel renders the fold and nothing else. A fetch to any other endpoint would make this
   // surface depend on something the contract did not give it. S17 gave it exactly one more: Sweep.
   // S20 gave it comparisons, and S21 the library and the two Stops — which go through ask(url), so a
-  // URL handed to ask is read here as a fetch.
+  // URL handed to ask is read here as a fetch. U1 gave it Catalogue my data, /library/all.
   const js = fs.readFileSync(path.join(PANEL, "estate_map.js"), "utf8");
   const fetched = [...js.matchAll(/(?:fetch|ask)\(\s*[`"']([^`"']+)/gu)].map((m) => m[1]);
   assert.ok(fetched.includes("/api/estate/map"), "it reads the map");
@@ -608,7 +608,7 @@ test("the panel reads the map from the estate map API, and talks to nothing but 
   for (const url of fetched)
     assert.match(
       url,
-      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop|drives)$/u,
+      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop|library\/all|drives)$/u,
       `${url} is not the map, Sweep, a comparison, the library or the drives`
     );
 });
@@ -899,6 +899,7 @@ async function openTab(window, name) {
     media: ".em__media:not(.em__backups)",
     library: ".em__library",
     backups: ".em__backups",
+    compare: ".em__backups", // U1: the Backups tab is labelled Compare
     drives: ".em__drives"
   }[name];
   await until(() => tab.dataset.on === "true" && window.document.querySelector(pane));
@@ -1364,7 +1365,7 @@ test("RENDERED: a root the map could never carry is named with its reason, and n
 
 test("RENDERED: the Backups tab names each drive against F:, and pressing Compare asks for that pair", async () => {
   const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } });
-  await openTab(window, "backups");
+  await openTab(window, "compare");
   const rows = [...window.document.querySelectorAll(".em__backups .em__mediarow")];
   assert.deepEqual(
     rows.map((r) => r.querySelector("b").textContent),
@@ -1411,7 +1412,7 @@ test("RENDERED: a finished comparison says what is only on the drive, its folder
     { at: NOW, machines: { t480: machine({}) } },
     { compare: { ...COMPARE_READY, results: { "C:": null, "G:": done } } }
   );
-  await openTab(window, "backups");
+  await openTab(window, "compare");
   const text = visible(window);
   assert.match(text, /Only on G:: 120 files, 3\.8 MB, 2 of them private and not listed\./u);
   assert.match(text, /Already on F:, by full hash: 30\./u);
@@ -1591,7 +1592,7 @@ test("RENDERED: a comparison names the catalogue it asked, and one running can b
     { at: NOW, machines: { t480: machine({}) } },
     { compare: { ...COMPARE_READY, running, results: { "C:": null, "G:": done } } }
   );
-  await openTab(window, "backups");
+  await openTab(window, "compare");
   assert.match(visible(window), /Against the catalogue of F: from moments ago\./u);
   const posted = await pressing(window, ".em__backups", /^Stop$/u, COMPARE_READY);
   assert.deepEqual(posted, [{ url: "/api/estate/compare/stop", body: {} }]);
@@ -3204,4 +3205,97 @@ test("S23 (panel): a pass the schedule started says so while it runs", async () 
     )
   );
   assert.match(text, /Cataloguing F: \(started by the schedule\)/u, text.slice(0, 500));
+});
+
+// --- U1: the owner's data on the Library tab, Downloads first ---------------------------------------
+
+const U1_OFFERED = [
+  { root: "C:\Users\me\Downloads", kind: "user", role: "downloads", in_onedrive: false, removable: false, sections: [] },
+  { root: "C:\Users\me\OneDrive", kind: "user", role: "onedrive", in_onedrive: true, removable: false, sections: ["documents", "desktop", "pictures"] },
+  { root: "C:\Users\me\Music", kind: "user", role: "music", in_onedrive: false, removable: false, sections: [] },
+  { root: "F:", kind: "drive", role: null, removable: true, sections: [] }
+];
+const u1Library = (extra = {}) => ({
+  ...LIBRARY_READY,
+  roots: U1_OFFERED.map((e) => e.root),
+  offered: U1_OFFERED,
+  catalogues: Object.fromEntries(U1_OFFERED.map((e) => [e.root, null])),
+  queue: null,
+  ...extra
+});
+const u1Text = async (library) => {
+  const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } }, { library });
+  await openTab(window, "library");
+  return { window, text: visible(window) };
+};
+
+test("U1 (panel): the Library lists the owner's roots in order, OneDrive with its sections, and offers Catalogue my data", async () => {
+  const { window, text } = await u1Text(u1Library());
+  const names = [...window.document.querySelectorAll(".em__shelf .em__mediarow > b")].map((b) => b.textContent);
+  assert.deepEqual(names, ["Downloads", "OneDrive", "Music", "F:"], text.slice(0, 400));
+  assert.match(text, /OneDrive Holds Documents, Desktop, Pictures\./u);
+  assert.match(text, /Downloads Never catalogued\./u);
+  const posted = await pressing(window, ".em__library", /^Catalogue my data$/u, u1Library());
+  assert.deepEqual(posted.map((p) => p.url), ["/api/estate/library/all"]);
+});
+
+test("U1 (panel): while Catalogue my data runs, each root says where it stands, and online-only files are counted", async () => {
+  const finished = new Date(NOW - 3_600_000).toISOString();
+  const lib = u1Library({
+    running: { root: "C:\Users\me\OneDrive", seen: 10, hashed: 4, bytes_hashed: 9, rate: 5, since: NOW },
+    queue: { current: "C:\Users\me\OneDrive", waiting: ["C:\Users\me\Music", "F:"], done: [{ root: "C:\Users\me\Downloads", finished: true }], finished: false },
+    catalogues: {
+      ...u1Library().catalogues,
+      "C:\Users\me\Downloads": { last: { finished_at: finished, seen: 779, online_only: 0 }, finishedAt: finished, kinds: [], files: 779, bytes: 43_000_000_000, duplicates: null },
+      "C:\Users\me\OneDrive": { last: { seen: 10, online_only: 2583 }, finishedAt: null, kinds: [], files: 0, bytes: 0, duplicates: null }
+    }
+  });
+  const { window, text } = await u1Text(lib);
+  assert.match(text, /Downloads Catalogued .+ ago: 779 files/u, text.slice(0, 600));
+  assert.match(text, /Cataloguing OneDrive: 10 files read/u, "the running pass is named, not given as a path");
+  assert.match(text, /OneDrive Holds Documents, Desktop, Pictures\. Cataloguing now\./u);
+  assert.match(text, /2,583 files are only in OneDrive's cloud: listed, never opened\./u);
+  assert.match(text, /Music Waiting in the queue\./u);
+  assert.match(text, /Catalogue my data: 1 done, 2 waiting\./u);
+  assert.equal(
+    [...window.document.querySelectorAll(".em__library button")].some((b) => b.textContent === "Catalogue my data"),
+    false,
+    "not offered again while it runs"
+  );
+});
+
+test("U1 (panel): a finished queue says what was skipped and why, and can be pressed again", async () => {
+  const { text } = await u1Text(
+    u1Library({
+      queue: { current: null, waiting: [], done: [{ root: "C:\Users\me\Downloads", finished: true }, { root: "F:", why: "F: cannot be read" }], finished: true }
+    })
+  );
+  assert.match(text, /Catalogue my data finished: 1 catalogued, 1 skipped\./u);
+  assert.match(text, /F: Skipped: F: cannot be read\./u);
+  assert.match(text, /Catalogue my data/u);
+});
+
+test("U1 (panel): the Compare tab names Downloads and says what in it is not on F:", async () => {
+  const t = () => ({ files: 0, bytes: 0 });
+  const done = {
+    ok: true,
+    at: new Date().toISOString(),
+    drive: { files: 779, bytes: 5_000_000 },
+    onlyHere: { files: 774, bytes: 4_000_000 },
+    onTarget: { files: 5, bytes: 1_000_000 },
+    unconfirmed: t(),
+    unreadable: t(),
+    privateCounted: t(),
+    folders: [],
+    listed: 774
+  };
+  const dl = "C:\Users\me\Downloads";
+  const { window } = await renderPanel(
+    { at: NOW, machines: { t480: machine({}) } },
+    { compare: { ...COMPARE_READY, roots: [dl, "F:"], labels: { [dl]: "downloads" }, results: { [dl]: done } } }
+  );
+  await openTab(window, "compare");
+  const text = visible(window);
+  assert.match(text, /Downloads Compared/u, text.slice(0, 400));
+  assert.match(text, /In Downloads, not on F:: 774 files, 3\.8 MB\./u);
 });

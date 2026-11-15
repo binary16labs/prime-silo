@@ -7,7 +7,7 @@ catalogue and the panel's view of it; S22 added the three questions an agent ask
 
 - `server/coordination/lib/library.mjs`
 - `server/coordination/lib/estate_api.mjs`
-- `delivery/tasks/S21.md`, `delivery/tasks/S22.md`
+- `delivery/tasks/S21.md`, `delivery/tasks/S22.md`, `delivery/tasks/U1.md`
 
 ## Routes
 
@@ -18,7 +18,8 @@ policy, because the catalogue names files.
 | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
 | `GET /library`                                   | each root's last pass, totals by kind, and the top duplicate sets                                                 |
 | `POST /library` `{root}`                         | start or resume a pass (202), or 409 if one is running                                                            |
-| `POST /library/stop`                             | stop the running pass, keeping what it committed                                                                  |
+| `POST /library/all`                              | Catalogue my data: every offered root in order, one pass at a time (202), or 409 while one runs                   |
+| `POST /library/stop`                             | stop the running pass, keeping what it committed, and clear Catalogue my data's queue                             |
 | `GET /library.csv?root=`                         | every duplicate set as CSV, streamed from the worker's own list                                                   |
 | `GET /library/find?root=&q=&kind=&limit=`        | files whose path contains `q`, with `withheld` counting private matches and `total` the matches before the limit  |
 | `GET /library/duplicates?root=&offset=&limit=`   | sets beyond the panel's top ten, most wasted first, read from the worker's list                                   |
@@ -32,9 +33,9 @@ policy, because the catalogue names files.
 2. **A policy must exist.** No quarantine policy means 412, never an unfiltered answer: a library
    that invents an empty policy is a guard that is never on.
 3. **The store is configured, not assumed.** `ESTATE_STORE` is a declared parameter
-   (`commands/params.yaml`), resolved through `runtime_params` and passed by `server/app.js`. Empty
-   gives 503 and the sentence that fixes it — `node space set ESTATE_STORE=<folder>` — because a
-   machine path shipped as a default is wrong on every machine but one.
+   (`commands/params.yaml`), resolved through `runtime_params` and passed by `server/app.js`, never
+   a machine path shipped as a default. Since U1, a machine with no store keeps every catalogue on
+   itself, in `BENNY_HOME/estate/library`, rather than refusing.
 
 ## The privacy rule
 
@@ -74,6 +75,28 @@ tick, through the same librarian the Catalogue button uses, so the two never run
 stops either. A drive that is not attached, or a different drive at the same letter (it has no
 catalogue under its identity), is never started and never counted as rescanned. The Library line says
 how the last pass listed the drive, and when the next rescan is due or that rescans are off.
+
+## The owner's data, Downloads first (U1)
+
+**Offered from the drive registry, in the owner's order:** Downloads, OneDrive, the other known and
+added folders, then data drives whole. A folder inside another root (Documents in OneDrive) is its
+**section**, so no file is in two; an overlapping added folder is refused. Never the system drive
+whole, nor Windows, Program Files, ProgramData or AppData: every route refuses them.
+
+**Catalogue my data** runs them one at a time; a failing root is recorded and skipped; Stop clears
+the queue, which lives in memory (after a restart, press it again: every pass resumes).
+
+**Where catalogues live.** User roots and internal drives: `BENNY_HOME/estate/library`. Removable
+drives: `ESTATE_STORE/library` when set, else `BENNY_HOME`. Lookups check both. (On the T480
+`BENNY_HOME` is itself on F:.)
+
+**OneDrive files not on this disk are never opened** (opening one downloads it). Before a user root's
+pass, the directory listing's attributes say which are cloud-only; those go to `online_only` (path,
+size, date), never `files`. An unreadable folder is not read; if Windows cannot answer, nothing is.
+Compare and Check refuse a root in OneDrive for the same reason.
+
+**Compare** (S20's Backups tab) takes Downloads as "from": "In Downloads, not on F:", F: asked through
+its catalogue.
 
 ## Walking the tree (S26)
 
