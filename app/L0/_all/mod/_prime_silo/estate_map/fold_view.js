@@ -551,14 +551,32 @@ export function libraryView(s, { now = Date.now() } = {}) {
   const c = s.catalogues?.["F:"] ?? null;
   const p = c?.last;
   const failed = s.last?.root === "F:" && s.last.failed ? ` The last pass failed: ${s.last.failed}` : "";
+  // S23: how the last pass found its files, and when the next one is due - or that none will come
+  const listed = !p?.finished_at
+    ? ""
+    : p.listed_by === "everything"
+      ? " Listed by Everything."
+      : ` Walked the drive${p.walk_reason ? `: ${p.walk_reason}` : ""}.`;
+  const hours = Number(s.rescanHours) || 0;
+  const dueAt = p?.finished_at ? Date.parse(p.finished_at) + hours * 3_600_000 : NaN;
+  const schedule = !c
+    ? ""
+    : hours <= 0
+      ? " Rescans are off (ESTATE_LIBRARY_RESCAN_HOURS=0)."
+      : Number.isFinite(dueAt) && dueAt > now
+        ? ` Next rescan in ${ageLabel(dueAt - now)}.`
+        : " A rescan is due now.";
   const line =
     (!c
       ? "Never catalogued."
       : p?.finished_at
         ? `Catalogued ${ago(p.finished_at)}: ${n(c.files)} files, ${bytes(c.bytes)}.` +
-          (p.unreadable_dirs ? ` ${n(p.unreadable_dirs)} folders could not be read, so their files were kept as they were.` : "")
+          (p.unreadable_dirs ? ` ${n(p.unreadable_dirs)} folders could not be read, so their files were kept as they were.` : "") +
+          listed
         : `${p?.stopped_at ? `Stopped ${ago(p.stopped_at)}` : "Not finished"} after ${n(p?.seen)} files: ` +
-          `Catalogue again resumes where it stopped.${c.finishedAt ? ` Last finished ${ago(c.finishedAt)}.` : ""}`) + failed;
+          `Catalogue again resumes where it stopped.${c.finishedAt ? ` Last finished ${ago(c.finishedAt)}.` : ""}`) +
+    schedule +
+    failed;
   const r = s.running;
   const eta =
     r?.estimate && r.rate > 0
@@ -571,7 +589,7 @@ export function libraryView(s, { now = Date.now() } = {}) {
     root: "F:",
     line,
     running: r
-      ? `Cataloguing ${r.root}: ${n(r.seen)} files read, ${n(r.hashed)} hashed (${bytes(r.bytes_hashed)}), ` +
+      ? `Cataloguing ${r.root}${r.started_by === "schedule" ? " (started by the schedule)" : ""}: ${n(r.seen)} files read, ${n(r.hashed)} hashed (${bytes(r.bytes_hashed)}), ` +
         `${Math.round(r.rate || 0)} files/s${eta}. Started ${ago(r.since)}.`
       : null,
     kinds: (c?.kinds ?? []).map((k) => ({ kind: k.kind, line: `${n(k.files)} files · ${bytes(k.bytes)}` })),

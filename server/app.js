@@ -224,6 +224,8 @@ async function createAgentServer(overrides = {}) {
       stateSystem,
       watchdog
     });
+  // S23: filled in once the estate API exists, so the library_rescan job uses the hub's own librarian
+  const jobServices = {};
   const jobRunner =
     overrides.jobRunner ||
     new JobRunner({
@@ -232,6 +234,7 @@ async function createAgentServer(overrides = {}) {
       mutationSync,
       projectRoot,
       runtimeParams,
+      services: jobServices,
       stateSystem,
       watchdog
     });
@@ -295,6 +298,8 @@ async function createAgentServer(overrides = {}) {
             // default — instead of read from raw process.env. estateStore empty means this machine
             // does not catalogue, which the library routes say rather than guessing a path.
             estateStore: runtimeParams.get("ESTATE_STORE", ""),
+            libraryWalkDays: runtimeParams.get("ESTATE_LIBRARY_WALK_DAYS", 7),
+            rescanHours: runtimeParams.get("ESTATE_LIBRARY_RESCAN_HOURS", 0),
             roots: () =>
               sweepRoots({
                 configured: String(runtimeParams.get("ESTATE_SWEEP_ROOTS", "") || "")
@@ -305,6 +310,7 @@ async function createAgentServer(overrides = {}) {
           }
         : null
     });
+  jobServices.estate = estateApi;
   // EP-A: the tuned tool-use agent served over /api/agent/* (SSE step stream). The Bridge UI wraps
   // this same runAgent the CLI uses — one harness. Nested paths, so mounted ahead of the flat router.
   // Sandbox root = projectRoot; shell exec stays off unless the host sets PRIME_SILO_AGENT_EXEC=1.

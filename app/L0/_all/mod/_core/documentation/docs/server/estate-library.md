@@ -51,6 +51,30 @@ tools open a catalogue: a second judge of the rules is one drift away from a lea
 - **A changed file is not a copy.** A catalogued row counts only while the file it describes still
   has its catalogued size and mtime; a stale row reads as `changed`, never as a safe second copy.
 
+## How a pass finds its files, and when it runs (S23)
+
+**Everything lists the drive; the walk is the fallback.** On Windows a pass takes its list of files
+from Everything's index, which gives each file's size and date without touching the disk, so an
+unchanged file costs neither a look nor a read. Both sources apply the same exclusions (the recycle
+bin and system folders at the top, the estate store, the operating system's own files), so a listing
+and a walk of one drive make the same catalogue. **A listing that may be incomplete never removes a
+row**: if Everything is not available, if its listing fails, if it holds fewer than 99% of the files the
+catalogue already holds, or if the last full walk is older than `ESTATE_LIBRARY_WALK_DAYS` (default 7),
+the pass walks instead and records why. Each pass records `listed_by` (everything or walk),
+`walk_reason` and `started_by` (owner or schedule); a catalogue from before S23 reads as the owner's walks.
+
+**Everything must be reachable.** If Everything runs as administrator, an ordinary program cannot talk
+to it (`es.exe` answers "IPC not found") and every pass walks, saying "Everything is not available for
+this drive". Run Everything without administrator rights, or as its service, for listings to work.
+
+**Rescans.** `ESTATE_LIBRARY_RESCAN_HOURS` (default 0, off) sets how often the hub rescans each drive
+it has already catalogued. Every 15 minutes the `library_rescan` job asks which drive is due: attached,
+catalogued here under its own identity, and last finished longer ago than the interval. One drive per
+tick, through the same librarian the Catalogue button uses, so the two never run at once and Stop
+stops either. A drive that is not attached, or a different drive at the same letter (it has no
+catalogue under its identity), is never started and never counted as rescanned. The Library line says
+how the last pass listed the drive, and when the next rescan is due or that rescans are off.
+
 ## Walking the tree (S26)
 
 A list of 237,508 duplicate sets is not a decision anyone makes; a folder that knows how much of

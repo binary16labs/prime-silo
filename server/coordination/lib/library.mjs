@@ -27,6 +27,7 @@ import { artifactPlacedEvent, artifactEvictedEvent } from "./artifacts.mjs";
 import { hashFile } from "./nas_catalog.mjs";
 import { canonPath, isQuarantined } from "./estate_map.mjs";
 import { rootIdentity } from "./estate_compare.mjs";
+import { isExcluded } from "./estate_map_files.mjs";
 
 const KINDS = {
   documents: "pdf doc docx odt rtf txt md xls xlsx ods csv ppt pptx odp epub",
@@ -162,6 +163,14 @@ export function openLibrary(dbPath) {
   if (!cols("files").includes("run")) db.exec("ALTER TABLE files RENAME COLUMN pass TO run");
   if (!cols("passes").includes("unreadable_dirs"))
     db.exec("ALTER TABLE passes ADD COLUMN unreadable_dirs INTEGER NOT NULL DEFAULT 0");
+  // S23: how a pass found its files, why it walked when it did, and who started it. An S21 pass was
+  // always a walk, and always the owner's.
+  if (!cols("passes").includes("listed_by"))
+    db.exec("ALTER TABLE passes ADD COLUMN listed_by TEXT NOT NULL DEFAULT 'walk'");
+  if (!cols("passes").includes("walk_reason"))
+    db.exec("ALTER TABLE passes ADD COLUMN walk_reason TEXT");
+  if (!cols("passes").includes("started_by"))
+    db.exec("ALTER TABLE passes ADD COLUMN started_by TEXT NOT NULL DEFAULT 'owner'");
   return db;
 }
 
@@ -186,9 +195,13 @@ async function* walk(root, { skip, unreadable }) {
     for (const e of entries) {
       const full = path.join(dir, e.name);
       if (e.isDirectory()) {
-        if (!(dir === top && SKIP_TOP.has(e.name.toLowerCase())) && !skip.has(fold(full)))
+        if (
+          !(dir === top && SKIP_TOP.has(e.name.toLowerCase())) &&
+          !skip.has(fold(full)) &&
+          !isExcluded(root, full)
+        )
           subdirs.push(full);
-      } else if (e.isFile()) yield { full, name: e.name };
+      } else if (e.isFile() && !isExcluded(root, full)) yield { full, name: e.name };
     }
     stack.push(...subdirs.reverse());
   }
@@ -212,6 +225,55 @@ function summaryEvent({ machine, root, passId, at, payload }) {
   };
 }
 
+// S23: WHICH SOURCE LISTS THE DRIVE. Everything when it is available and its listing can be trusted,
+// otherwise S21's walk, with the reason kept on the pass. A listing that may be incomplete must never
+// remove a row, so a failed listing, one holding under 99% of the files the catalogue already holds
+// (an exclusion in Everything's own options could hide a folder silently), and a last full walk older
+// than walkDays all walk instead. The listing applies the walk's own exclusions, so both sources
+// make the same catalogue.
+async function chooseListing({ db, root, lister, walkDays, now, skip }) {
+  if (!lister) return { rows: null, reason: null };
+  const top = fullOf(root, "");
+  const skips = skip.map(fold);
+  const excluded = (full) => {
+    const rel = path.relative(top, full);
+    if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) return true;
+    const parts = rel.split(path.sep);
+    if (parts.length > 1 && SKIP_TOP.has(parts[0].toLowerCase())) return true;
+    const f = fold(full);
+    if (skips.some((s) => f === s || f.startsWith(s + path.sep))) return true;
+    return isExcluded(root, full);
+  };
+  const lastWalk = db
+    .prepare(
+      "SELECT MAX(finished_at) AS at FROM passes WHERE listed_by = 'walk' AND finished_at IS NOT NULL"
+    )
+    .get().at;
+  if (lastWalk) {
+    const days = (now() - Date.parse(lastWalk)) / 86_400_000;
+    if (days > walkDays)
+      return {
+        rows: null,
+        reason: `the last full walk was ${Math.floor(days)} days ago, more than ${walkDays}`
+      };
+  }
+  if (!(await Promise.resolve(lister.available(root)).catch(() => false)))
+    return { rows: null, reason: "Everything is not available for this drive" };
+  const rows = [];
+  try {
+    for await (const r of lister.list(root)) if (!excluded(r.path)) rows.push(r);
+  } catch (e) {
+    return { rows: null, reason: `the listing failed: ${e?.code || e?.message || e}` };
+  }
+  const held = db.prepare("SELECT COUNT(*) AS n FROM files").get().n;
+  if (held > 0 && rows.length < held * 0.99)
+    return {
+      rows: null,
+      reason: `the listing held ${rows.length} of ${held} files the catalogue holds, under 99%`
+    };
+  return { rows, reason: null };
+}
+
 // One pass over `root`. Resumes the last unfinished pass of this drive's catalogue if there is one.
 export async function catalogue({
   root,
@@ -224,7 +286,12 @@ export async function catalogue({
   batch = 500,
   batchMs = 30_000,
   now = () => Date.now(),
-  onProgress = () => {}
+  onProgress = () => {},
+  // S23: a listing source (Everything); the walk is the fallback. Who started the pass is recorded.
+  lister = null,
+  walkDays = 7,
+  startedBy = "owner",
+  stat = (p) => fsp.stat(p)
 }) {
   const db = openLibrary(dbPath);
   const logFile = dbPath.replace(/\.db$/u, ".jsonl");
@@ -248,6 +315,13 @@ export async function catalogue({
     // stopped run had reached looked reached to the run that finished, and a file moved or deleted
     // between the two stayed in the catalogue for ever (claude-s21-verifier).
     const run = ulid(now());
+    const listing = await chooseListing({ db, root, lister, walkDays, now, skip });
+    db.prepare("UPDATE passes SET listed_by = ?, walk_reason = ?, started_by = ? WHERE id = ?").run(
+      listing.rows ? "everything" : "walk",
+      listing.reason,
+      startedBy,
+      pass.id
+    );
     const known = db.prepare("SELECT size, mtime_ms, sha256, first_seen FROM files WHERE path = ?");
     const touch = db.prepare("UPDATE files SET run = ?, last_seen = ? WHERE path = ?");
     const keepUnder = db.prepare(
@@ -352,17 +426,28 @@ export async function catalogue({
       if (unreadableDirs.length) guard(); // a drive that has gone makes every folder unreadable
       for (const d of unreadableDirs.splice(0)) keepUnder.run(run, relOf(d), relOf(d));
     };
-    for await (const f of walk(root, {
-      skip: skipSet,
-      unreadable: (d) => (c.unreadable_dirs++, unreadableDirs.push(d))
-    })) {
+    // a listed file arrives with its size and date, so an unchanged one costs neither a stat nor a read
+    const entries = listing.rows
+      ? (async function* () {
+          for (const r of listing.rows) yield { full: r.path, name: path.basename(r.path), st: r };
+        })()
+      : walk(root, {
+          skip: skipSet,
+          unreadable: (d) => (c.unreadable_dirs++, unreadableDirs.push(d))
+        });
+    for await (const f of entries) {
       if (signal?.aborted) break;
       begin();
       keepUnreadable();
       c.seen++;
       const rel = relOf(f.full);
       const before = known.get(rel);
-      const st = await fsp.stat(f.full).catch(() => null);
+      const given = f.st && Number.isFinite(f.st.size) && Number.isFinite(f.st.mtimeMs);
+      const st = given
+        ? { size: f.st.size, mtimeMs: f.st.mtimeMs }
+        : await Promise.resolve(f.full)
+            .then(stat)
+            .catch(() => null);
       const mtime = st ? Math.floor(st.mtimeMs) : 0;
       if (st && before && before.size === st.size && before.mtime_ms === mtime) {
         touch.run(run, iso(), rel); // unchanged, or committed before a stop: never read twice
@@ -1418,7 +1503,10 @@ export function createLibrarian({
   rules = [],
   hash = hashFile,
   machine = os.hostname().toLowerCase(),
-  retryMs = 60_000
+  retryMs = 60_000,
+  // S23: Everything when the hub has it; walkDays bounds how long listings run without a full walk
+  lister = null,
+  walkDays = 7
 }) {
   let running = null;
   let last = null;
@@ -1677,12 +1765,21 @@ export function createLibrarian({
       const c = current(root);
       return c && fs.existsSync(csvFor(c.db, c.key)) ? csvFor(c.db, c.key) : null;
     },
-    start(root) {
+    // ONE LIBRARIAN FOR EVERY PASS (S23): the schedule and the Catalogue button both come through
+    // here, so the two can never run at once, and Stop stops either
+    start(root, { startedBy = "owner" } = {}) {
       if (running) return { started: false, since: running.since };
       const dbPath = libraryPath(dir, root);
       if (!dbPath) return { started: false, since: null, reason: `${root} cannot be read` };
       ctl = new AbortController();
-      running = { root, since: new Date().toISOString(), phase: "starting", seen: 0, hashed: 0 };
+      running = {
+        root,
+        since: new Date().toISOString(),
+        phase: "starting",
+        seen: 0,
+        hashed: 0,
+        started_by: startedBy
+      };
       const mine = running;
       const done = catalogue({
         root,
@@ -1690,6 +1787,9 @@ export function createLibrarian({
         skip: [dir, ...skip],
         rules,
         hash,
+        lister,
+        walkDays,
+        startedBy,
         signal: ctl.signal,
         onProgress: (p) => Object.assign(mine, p)
       })
