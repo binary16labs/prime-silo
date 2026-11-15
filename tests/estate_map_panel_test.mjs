@@ -608,7 +608,7 @@ test("the panel reads the map from the estate map API, and talks to nothing but 
   for (const url of fetched)
     assert.match(
       url,
-      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop|library\/all|drives)$/u,
+      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop|library\/all|library\/sole|drives)$/u,
       `${url} is not the map, Sweep, a comparison, the library or the drives`
     );
 });
@@ -734,6 +734,7 @@ async function renderPanel(
     sweep = SWEEP_READY,
     compare = COMPARE_READY,
     library = LIBRARY_READY,
+    sole = { target: "F:", sources: [] },
     drives = { drives: [] },
     drivesStatus = 200,
     posted = []
@@ -782,6 +783,9 @@ async function renderPanel(
       if (init.method === "POST") posted.push(JSON.parse(init.body));
       return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => compare };
     }
+    // U6: its own answer, ahead of the library prefix it shares
+    if (String(url).startsWith("/api/estate/library/sole"))
+      return { ok: true, status: 200, json: async () => sole };
     if (String(url).startsWith("/api/estate/library")) {
       if (init.method === "POST") posted.push(JSON.parse(init.body));
       return { ok: true, status: init.method === "POST" ? 202 : 200, json: async () => library };
@@ -3298,4 +3302,28 @@ test("U1 (panel): the Compare tab names Downloads and says what in it is not on 
   const text = visible(window);
   assert.match(text, /Downloads Compared/u, text.slice(0, 400));
   assert.match(text, /In Downloads, not on F:: 774 files, 3\.8 MB\./u);
+});
+
+// --- U6: what is only outside F:, on the Library tab ---------------------------------------------
+
+test("U6 (panel): each source says what to copy onto F:, what is there, and what cannot be told", async () => {
+  const at = new Date(NOW - 3_600_000).toISOString();
+  const counts = (o) => ({ files: 0, on_f: { files: 0, bytes: 0 }, to_copy: { files: 0, bytes: 0, unique_bytes: 0, repeat_bytes: 0 }, cannot_tell: { files: 0, bytes: 0 }, kinds: {}, private: 0, ...o });
+  const sole = {
+    target: "F:",
+    sources: [
+      { root: "C:\\Users\\me\\Downloads", role: "downloads", attached: true, source_at: at, f_at: at, listed: true, ...counts({ on_f: { files: 5, bytes: 10 }, to_copy: { files: 774, bytes: 32_212_254_720, unique_bytes: 30_000_000_000, repeat_bytes: 2_212_254_720 }, private: 2 }) },
+      { root: "C:\\Users\\me\\OneDrive", role: "onedrive", attached: true, source_at: at, f_at: at, listed: true, ...counts({ to_copy: { files: 3, bytes: 30, unique_bytes: 30, repeat_bytes: 0 }, cannot_tell: { files: 793_659, bytes: 50_000_000_000 } }) },
+      { root: "G:", role: null, attached: false, computing: true, last: null }
+    ]
+  };
+  const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } }, { sole });
+  await openTab(window, "library");
+  const text = visible(window);
+  assert.match(text, /Only outside F:/u);
+  assert.match(text, /Downloads 774 files, 30 GB to copy onto F: \(2\.1 GB of that repeats itself\); 5 already there\. 2 private files counted, not listed\./u, text.slice(0, 900));
+  assert.match(text, /Cannot tell for 793,659 files only in the cloud/u);
+  assert.match(text, /G: \(away\) Working out what is only here…/u);
+  const link = window.document.querySelector(".em__sole a[download]");
+  assert.equal(link.getAttribute("href"), "/api/estate/library/sole.csv?root=C%3A%5CUsers%5Cme%5CDownloads");
 });

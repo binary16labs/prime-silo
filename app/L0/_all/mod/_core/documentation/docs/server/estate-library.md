@@ -100,6 +100,16 @@ cannot say, the check reads nothing.
 **Compare** (S20's Backups tab) takes Downloads as "from": "In Downloads, not on F:", F: asked through
 its catalogue.
 
+## What is only outside F: (U6)
+
+Stage 2 of the signed `PLAN-consolidate-first`. `GET /library/sole` answers, per source (every
+offered root but F:, and every catalogued drive that is away, dated), from the catalogues alone:
+files and bytes **to copy onto F:** (content F: lacks, by sha256, so a file F: holds under another
+name is already there; a source's own repeats are said separately), **already on F:**, and **cannot
+tell** (cloud-only rows have no fingerprint and are never called "on F:"). A worker computes it off
+the hub's thread, current for both catalogues' last passes and the policy.
+`GET /library/sole.csv?root=` is the list; private files are counted, never listed.
+
 ## Walking the tree (S26)
 
 A list of 237,508 duplicate sets is not a decision anyone makes; a folder that knows how much of

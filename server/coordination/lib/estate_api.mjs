@@ -12,6 +12,7 @@ import { acceptMap, register as registerSatellite } from "./estate_register.mjs"
 import { createSweeper, latestLocalPush } from "./estate_map_producer.mjs";
 import { createComparer, listRoot, rootIdentity } from "./estate_compare.mjs";
 import { everythingAdapter } from "./estate_map_files.mjs";
+import { createSoleReporter } from "./estate_sole.mjs";
 import { createLibrarian, finishedAtOf, libraryPathFor, windowsCloudOnly } from "./library.mjs";
 import {
   openRegistry,
@@ -351,6 +352,26 @@ export function createEstateApi({
       finished: Boolean(queue.finished)
     };
 
+  // U6: WHAT IS ONLY OUTSIDE F:, per source, from the catalogues alone (stage 2 of the signed plan).
+  // Every offered root but F: itself, and every catalogued drive that is away, dated.
+  const TARGET = producer?.target ?? "F:"; // the one consolidation drive (signed 2026-11-15)
+  const sole = producer && createSoleReporter({ dir: path.join(path.dirname(producer.dbPath), "sole"), rules: Array.isArray(quarantine) ? quarantine : [] });
+  const soleSources = () => {
+    const out = shelf()
+      .filter((e) => e.root !== TARGET)
+      .map((e) => ({ root: e.root, role: e.role, attached: true, db: librarian.dbFor(e.root) }));
+    const db = registry();
+    try {
+      for (const r of db ? db.prepare("SELECT identity, root FROM drives WHERE attached = 0").all() : []) {
+        const f = [storeLib, homeLib].filter(Boolean).map((d) => libraryPathFor(d, r.identity)).find((x) => fs.existsSync(x));
+        if (f) out.push({ root: r.root, role: null, attached: false, db: f });
+      }
+    } finally {
+      db?.close();
+    }
+    return out;
+  };
+
   // S20: a backup drive against F:, on this machine. Results hold file names, so every compare route
   // answers this machine only, and they are kept beside its own map, in BENNY_HOME. Since S21 it asks
   // F:'s catalogue where there is one, and reads only the backup drive.
@@ -599,6 +620,8 @@ export function createEstateApi({
       rest === "/library/check" ||
       rest === "/library/folder" ||
       rest === "/library/neighbours" ||
+      rest === "/library/sole" ||
+      rest === "/library/sole.csv" ||
       rest === "/compare/stop"
     ) {
       if (!local(req))
@@ -645,6 +668,22 @@ export function createEstateApi({
 
       const offer = shelf();
       const roots = offer.map((e) => e.root);
+      if (req.method === "GET" && (rest === "/library/sole" || rest === "/library/sole.csv")) {
+        if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
+        const targetDb = librarian.dbFor(TARGET);
+        if (!targetDb) return sendJson(res, 200, { target: TARGET, why: `${TARGET} is not attached`, sources: [] });
+        const sources = soleSources().map((s) => ({
+          role: s.role,
+          attached: s.attached,
+          ...sole.report({ sourceRoot: s.root, sourceDb: s.db, targetDb })
+        }));
+        if (rest === "/library/sole") return sendJson(res, 200, { target: TARGET, sources: sources.map(({ csv, ...x }) => ({ ...x, listed: Boolean(csv) })) });
+        const want = new URL(req.url, "http://localhost").searchParams.get("root");
+        const csv = sources.find((s) => s.root === want)?.csv;
+        if (!csv || !fs.existsSync(csv)) return sendJson(res, 404, { error: "no list for that source yet" });
+        res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="only-outside-F.csv"' });
+        return void fs.createReadStream(csv).pipe(res);
+      }
       if (req.method === "GET" && rest === "/library") {
         const catalogues = Object.fromEntries(
           roots.map((r) => [r, Array.isArray(quarantine) ? librarian.state(r) : null])

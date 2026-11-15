@@ -19,7 +19,8 @@ import {
   storageRects,
   sweepView,
   compareView,
-  libraryView
+  libraryView,
+  soleView
 } from "/mod/_prime_silo/estate_map/fold_view.js";
 
 const REFRESH_MS = 60_000;
@@ -43,6 +44,7 @@ window.estateMapPage = function estateMapPage() {
     cmp: compareView(null),
     compareError: "",
     lib: libraryView(null),
+    sole: soleView(null),
     libraryError: "",
     loading: true,
     drives: [],
@@ -171,9 +173,15 @@ window.estateMapPage = function estateMapPage() {
       } catch {
         this.lib = libraryView(null);
       }
+      // U6: what is only outside F:, from the catalogues - worked out by the hub off its thread
+      try {
+        this.sole = soleView(await (await fetch("/api/estate/library/sole")).json());
+      } catch {
+        this.sole = soleView(null);
+      }
       clearTimeout(cataloguing);
       // U1: and while Catalogue my data has roots still waiting, between one pass and the next
-      if (this.lib.running || (this.lib.queue && !this.lib.all))
+      if (this.lib.running || (this.lib.queue && !this.lib.all) || this.sole.computing)
         cataloguing = setTimeout(() => this.refreshLibrary(), SWEEP_WATCH_MS);
     },
 
