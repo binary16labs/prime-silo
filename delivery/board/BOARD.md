@@ -17,6 +17,8 @@
 
 - S32 — levels: fingerprint only what a question needs _(dep S23 DONE 2026-11-15 — enters READY at the bottom; owner may reorder)_
 
+- S24 — possible duplicates: the rules beyond identical bytes, for review _(dep S23 DONE 2026-11-15 — enters READY at the bottom; owner may reorder)_
+
 ## CLAIMED (agent · date)
 
 - U1 — catalogue the owner's data on every machine, Downloads first · claude-opus-5-5 · 2026-11-15 _(owner's go 11:06Z; deps U0 and S23 DONE; contract amended to carry its own online-only guard after the S23/S32 split)_
@@ -148,7 +150,7 @@ Q2 Q3 ·
 R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
-S8 · S24 (signed 2026-10-11, dep S23 DONE) · S28 (authored 2026-10-26, AWAITING THE OWNER'S SIGNATURE, waits on S27 which is DONE) ·
+S8 · S28 (authored 2026-10-26, AWAITING THE OWNER'S SIGNATURE, waits on S27 which is DONE) ·
 
 S29 (authored 2026-10-26, AWAITING THE OWNER'S SIGNATURE — the locked-or-corrupt catalogue read, referred out of S26 because eight surfaces across S21, S22 and S26 share it) ·
 EP-U (signed 2026-10-11; S6 superseded by U7, S7 re-scoped as U8): U2–U10 to be authored ·
