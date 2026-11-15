@@ -374,9 +374,13 @@ test("U7 round 2: the digest covers the repeats' pointers as well as the copies"
   const e = await estate();
   const before = planCopy({ sourceDb: e.sDb, sourceRoot: e.src, sourceName: "Downloads", targetDb: e.fDb, policy: DEFAULT_POLICY }).digest;
   write(e.src, "c/z.bin", "repeated content"); // one more repeat, nothing new to copy
-  await catalogue({ root: e.src, dbPath: e.sDb });
+  // the same cloud probe as the first pass, so only the new repeat can change the plan
+  const cloudFile = path.join(e.src, "Pictures", "cloud.jpg");
+  await catalogue({ root: e.src, dbPath: e.sDb, cloudOnly: async () => ({ cloud: new Set([fold(cloudFile)]), unknown: [] }) });
   const after = planCopy({ sourceDb: e.sDb, sourceRoot: e.src, sourceName: "Downloads", targetDb: e.fDb, policy: DEFAULT_POLICY });
   assert.equal(after.counts.repeats.files, 2);
+  assert.equal(after.counts.copy.files, planCopy({ sourceDb: e.sDb, sourceRoot: e.src, sourceName: "Downloads", targetDb: e.fDb, policy: DEFAULT_POLICY }).counts.copy.files);
+  assert.equal(after.items.filter((l) => JSON.parse(l).to).length, after.counts.copy.files, "no new copy - only a new pointer");
   assert.notEqual(after.digest, before, "a new pointer is a different plan to sign");
 });
 
@@ -392,4 +396,50 @@ test("U7 round 2: unknown free space cannot be raised; unknown policy keys are d
     await h.close();
   }
   assert.equal("evil" in validatePolicy({ evil: "x", never: [] }), false);
+});
+
+test("U7 round 3: an added folder whose own name is private is named by its identity, in the plan and in the proposal", async () => {
+  const e = await estate();
+  const secret = path.join(tmp(), "Passport-scans");
+  write(secret, "page1.jpg", "a private page");
+  const home = tmp();
+  const gov = path.join(tmp(), "g.jsonl");
+  const offered = [
+    { root: secret, kind: "user", role: "added", in_onedrive: false, removable: false, sections: [] },
+    { root: e.f, kind: "drive", role: null, removable: true, sections: [] }
+  ];
+  const api = createEstateApi({
+    quarantine: ["passport"],
+    producer: {
+      machine: "T480", dbPath: path.join(home, "estate", "m.db"), roots: () => offered.map((x) => x.root), offered: () => offered,
+      estateStore: tmp(), lister: null, cloudOnly: async () => ({ cloud: new Set(), unknown: [] }), target: e.f,
+      governanceLog: gov, policyFile: path.join(tmp(), "p.json"), freeBytes: 10 ** 12
+    }
+  });
+  const server = http.createServer((req, res) => { if (!api.tryHandle(req, res)) res.writeHead(404).end(); });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const base = `http://127.0.0.1:${server.address().port}/api/estate`;
+  const call = async (p, body) => {
+    const res = await fetch(base + p, body ? { method: "POST", body: JSON.stringify(body) } : {});
+    const text = await res.text();
+    return { status: res.status, text, json: (() => { try { return JSON.parse(text); } catch { return null; } })() };
+  };
+  try {
+    for (const root of [e.f, secret]) {
+      await call("/library", { root });
+      for (let i = 0; i < 500 && JSON.parse((await call("/library")).text).running; i++) await wait(10);
+    }
+    let s;
+    for (let i = 0; i < 600; i++) {
+      s = (await call("/library/plan")).json;
+      if (s.sources?.length && s.sources.every((x) => !x.computing)) break;
+      await wait(20);
+    }
+    assert.doesNotMatch(JSON.stringify(s), /passport/iu, "the folder's private name is nowhere in the plan");
+    assert.match(s.sources[0].source, /^Added-[A-Za-z0-9_-]{8}$/u);
+    assert.equal((await call("/library/plan/raise", { source: s.sources[0].id })).status, 201);
+    assert.doesNotMatch(fs.readFileSync(gov, "utf8"), /passport/iu, "nor in the permanent governance record");
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
 });

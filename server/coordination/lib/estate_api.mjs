@@ -390,7 +390,14 @@ export function createEstateApi({
   // gave the drive, else its short identity - never a volume label, which can be private
   const nameFor = (s) => {
     // round 2 (B4): an added folder is "Added-<its folder name>", not "Added" for every one
-    if (s.role === "added") return `Added-${path.basename(s.root).replace(/[^A-Za-z0-9 _-]+/gu, "_") || "folder"}`;
+    // ...and judged by the privacy rules like a drive name: a private folder name never reaches the API
+    // or a governance proposal's title (a permanent record); it is named by its short identity instead
+    if (s.role === "added") {
+      const own = path.basename(s.root);
+      return labelProblem(own, Array.isArray(quarantine) ? quarantine : [])
+        ? `Added-${sourceIdOf(s.db).slice(-8)}`
+        : `Added-${own.replace(/[^A-Za-z0-9 _-]+/gu, "_") || "folder"}`;
+    }
     if (s.role) return ROLE_NAME[s.role] ?? s.role;
     const db = registry();
     try {
