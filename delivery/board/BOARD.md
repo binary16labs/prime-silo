@@ -7,6 +7,8 @@
 
 ## READY (take from the top)
 
+- U13 — a proven offline copy of F: _(owner-directed 2026-11-15, dep U1 DONE; TOP PRIORITY after U12 merges - data sovereignty; needs the owner's new mirror drive attached for its real-T480 criteria)_
+
 - W3 — dogfood proof (no plan-file read; author≠verifier chain in ledger) _(dep W2 DONE — entered READY 2026-08-03; closes EP-W)_
 
 - L16 — version the observability surface (out of scratch/) _(UNBLOCKED 2026-08-03 — contract amended per owner option (b): budget counts authored lines only, verbatim relocation exempt and gate-checked for byte-identity. Returned to READY unclaimed rather than held, to respect WIP limit 1 while W2 is worked.)_
