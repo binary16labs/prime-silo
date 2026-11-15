@@ -146,6 +146,7 @@ R0 R1 R2 R3 ·
 M2-1 M2-2 M2-3 M2-4 M2-5 M2-6 M2-7 M2-8 ·
 B4 B5 · L15 ·
 S8 · S24 (signed 2026-10-11, waits on S23) · S28 (authored 2026-10-26, AWAITING THE OWNER'S SIGNATURE, waits on S27 which is DONE) ·
+S32 (split out of S23 on the owner's decision 2026-11-15, scope signed with S23 on 2026-10-11, waits on S23) ·
 S29 (authored 2026-10-26, AWAITING THE OWNER'S SIGNATURE — the locked-or-corrupt catalogue read, referred out of S26 because eight surfaces across S21, S22 and S26 share it) ·
 EP-U (signed 2026-10-11; S6 superseded by U7, S7 re-scoped as U8): U1 (signed 2026-10-11, waits on U0, S23) · U2–U10 to be authored ·
 EP-K (signed 2026-10-11): K0 (signed 2026-10-11, waits on U1) · K1–K6 to be authored ·
