@@ -21,6 +21,8 @@
 
 ## CLAIMED (agent · date)
 
+- U12 — Check and Compare never open a file that is only in the cloud · claude-opus-5-5 · 2026-11-15 _(owner: "Fix leak"; closes claude-u1-verifier's round-2 findings 1 and 2)_
+
 
 ## VERIFY (awaiting non-author verification)
 
