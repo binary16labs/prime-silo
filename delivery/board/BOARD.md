@@ -23,13 +23,13 @@
 
 ## CLAIMED (agent · date)
 
-- U7 — the copy plan: what goes onto F:, where, and whether it fits · claude-opus-5-5 · 2026-11-15 _(signed; built on task/U7 @ bbf5b9ce from task/U6; dep U6 now DONE)_
 
 
 
 
 ## VERIFY (awaiting non-author verification)
 
+- U7 — the copy plan: what goes onto F:, where, and whether it fits · author claude-opus-5-5 · branch task/U7 @ bbf5b9ce · READY FOR VERIFY 2026-11-15 _(gate u7 GREEN on rerun (first run: S26 folder-route test flaked under load, 3/3 alone on U7 and main - third load flake today, test-hardening task offered). 8/8 U7 tests fail on U6's code; 14/14 mutations killed. 391 of 500 by raw diff.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
