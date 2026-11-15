@@ -23,17 +23,19 @@
 
 ## CLAIMED (agent · date)
 
+- U7 — the copy plan: what goes onto F:, where, and whether it fits · claude-opus-5-5 · 2026-11-15 _(signed; built on task/U7 @ bbf5b9ce from task/U6; dep U6 now DONE)_
+
 
 
 
 ## VERIFY (awaiting non-author verification)
 
-- U6 — what is only outside F:, from the catalogues alone · author claude-opus-5-5 · branch task/U6 @ b72d8856 · ROUND 2 READY FOR VERIFY 2026-11-15 _(round 1 FAILED (claude-u6-verifier, e6014fbb): sources keyed by letter; answers from unfinished passes. Fixed; new tests fail on round 1; 11/11 mutations killed incl. the verifier's 6 survivors; gate u6 GREEN. 291+ of 500. Owner chose the headline to count each content once.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
 ## DONE (id · verified-by · date)
 
+- U6 — what is only outside F:, from the catalogues alone · verified-by claude-u6-verifier · 2026-11-15 _(merged to main @ eff79b25, gate green on the merged tree before the commit. PASS at round 2 after a FAIL: sources keyed by letter, answers from unfinished passes. 294 of 500. Carried: F:'s own unfinished pass, the F:-against-itself filter and two-sources-one-root on the panel untested; the headline's file count still includes repeats (bytes do not); ~3 catalogue opens per request on the hub's thread.)_
 - U12 — Check and Compare never open a file that is only in the cloud · verified-by claude-u12-verifier · 2026-11-15 _(merged to main @ 9ba1efb8, gate green on the merged tree before the commit. PASS first round; ~25 spellings tried, none opened a cloud-only file. 75 of 300. Carried: refuse UNC/device paths on Check (unelevated cannot list c$: 0 files, measured); the probe ignores the 500-file cap; TOCTOU.)_
 - U1 — catalogue the owner's data on every machine, Downloads first · verified-by claude-u1-verifier · 2026-11-15 _(merged to main @ b22d5525. PASS at round 2 after a FAIL: OneDrive as a compare target was read, and an 8.3 root spelling opened offline files. Budget overrun to ~501-529 of 500 accepted by the owner. Carried: Check of a folder that HOLDS OneDrive still hashes inside it (predates U1, reachable via library_check) - next; compare from a drive holding OneDrive; probe-to-hash TOCTOU; four test gaps the verifier's mutations found. Real-T480 criteria: the owner's Downloads run follows.)_
 - S23 — Everything lists the drive, and the catalogue keeps itself current · verified-by claude-s23-verifier · 2026-11-15 _(merged to main @ fa9112c1, s23 and c8 gates green on the merged tree. PASS first round; levels split to S32 on the owner's decision. Carried, non-blocking: the app.js/JobRunner services hand-off is untested and must be before the owner sets ESTATE_LIBRARY_RESCAN_HOURS above 0; the 99%, walkDays and due boundaries are untested; 'different drive' is tested only as never-catalogued; a scheduled tick can resume an owner-stopped pass.)_
@@ -159,7 +161,7 @@ B4 B5 · L15 ·
 S8 · S28 (authored 2026-10-26, AWAITING THE OWNER'S SIGNATURE, waits on S27 which is DONE) ·
 
 S29 (authored 2026-10-26, AWAITING THE OWNER'S SIGNATURE — the locked-or-corrupt catalogue read, referred out of S26 because eight surfaces across S21, S22 and S26 share it) ·
-EP-U (signed 2026-10-11; S6 superseded by U7, S7 re-scoped as U8): U7 (SIGNED 2026-11-15, waits on U6; being built ahead on task/U7 from task/U6, claimed when U6 merges) · U2–U5, U8–U10 to be authored ·
+EP-U (signed 2026-10-11; S6 superseded by U7, S7 re-scoped as U8): U2–U5, U8–U10 to be authored ·
 EP-H home_code integration (SIGNED 2026-11-15, delivery/PLAN-home-code-integration.md): H1–H5 to be authored after U7/U8 (read through the API, one ledger, one graph writer per machine, contracts on one board, optimus sessions to the T480) ·
 EP-K (signed 2026-10-11): K0 (signed 2026-10-11, waits on U1) · K1–K6 to be authored ·
 P5 ·
