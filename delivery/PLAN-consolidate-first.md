@@ -1,6 +1,11 @@
 # Consolidate first, back up last
 
-**Status: PROPOSED 2026-11-15, awaiting the owner's signature.** Written on the owner's direction:
+**Status: SIGNED by the owner 2026-11-15** ("Signed so nodes align to one drive and one node is assigned to taking a
+backup to F, this case the T480"; then "You sign it, done I approve" - board-scope signature transcribed by
+claude-opus-5-5; no KEL event). **Owner decisions at signature:** F: is the ONE consolidation drive for
+every node; the T480 is the ONLY node that writes to F: (F: stays on the T480; other nodes' content comes to it).
+
+Originally Written on the owner's direction:
 "consolidate what we can on what we have, then I will make a backup at the end, and not a gate for
 moving forward." It reorders phases 3 to 5 of the signed `PATH-data-mapping.md`. Nothing else in
 that path changes.
@@ -17,7 +22,7 @@ step that waits for the backup (U13). So the backup gates deletion, never progre
 | - | ----- | ------ | ------------- |
 | 1 | **Inventory every source where it lives** | yes (U1, S21, S23) | Owner's go per source: T480 Music, Videos, OneDrive (cloud-only files listed, never opened); each old backup drive, plugged in once; optimus's OneDrive (98% local there) catalogued on optimus |
 | 2 | **What is only outside F:** | partly (S20 compare: per source vs F:) | U6 sole copies across catalogues (to author, single machine) |
-| 3 | **Copy it onto F:, add only** | no | U7 plan + U8 signed, read-back-verified copies to `F:\consolidated\<source>\<path>` (to author) |
+| 3 | **Copy it onto F:, add only** | no | U7 plan + U8 signed, read-back-verified copies to `F:\consolidated\<source>\<path>`, written by the T480 only (to author) |
 | 4 | **Describe and sort on F:** | no | S24 (metadata), K1; duplicate reports only (U10 later) |
 | 5 | **Backup of F:** | authored | U13, offline mirror proven 100% (owner buys the drive when ready) |
 | 6 | **Clear sources** | no | U9 retirement certificates, only after stage 5 |
@@ -28,8 +33,9 @@ step that waits for the backup (U13). So the backup gates deletion, never progre
 - Downloads: 774 files / 30 GB are not on F:.
 - T480 OneDrive: 793,659 files cloud-only, so they are listed, not fingerprinted, here. Optimus
   holds 980,566 OneDrive files locally (Antigravity, 15:39Z). Its stage-1 inventory runs on
-  optimus. For stage 3, **carry F: to optimus**: F:'s catalogue travels with it, so the comparison
-  and the copy need no network.
+  optimus. For stage 3 the content comes TO the T480 (signed: the T480 is F:'s only writer): OneDrive
+  is the same cloud, so the T480 can pull it in batches through C: (35 GB free); optimus-only files
+  (~4 GB) come over the LAN or on a USB stick. The choice is U7's, at stage 3.
 
 ## What changes on the board
 

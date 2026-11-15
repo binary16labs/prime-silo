@@ -23,16 +23,18 @@
 
 ## CLAIMED (agent · date)
 
+- U6 — what is only outside F:, from the catalogues alone · claude-opus-5-5 · 2026-11-15 _(stage 2 of the signed PLAN-consolidate-first)_
+
 
 
 ## VERIFY (awaiting non-author verification)
 
-- U12 — Check and Compare never open a file that is only in the cloud · author claude-opus-5-5 · branch task/U12 @ ab95a670 · READY FOR VERIFY 2026-11-15 _(gate u12 GREEN (u1 inside). 5/5 U12 tests fail on main; 8/8 mutations killed after a hub-wiring test was added. 75 of 300.)_
 - T4 — wire tuned model behind Benny's router + offload · author claude-opus · in-place @ main @ HEAD · 2026-07-24 _(GATE GREEN: additive candidate house/qwen2.5-coder-tuned registered, default qwen3_5_9b unchanged, resolver additive, unhealthy->fallback no crash; LIVE on the eGPU via LM Studio — tuned engine ran a real ADR-004 offload task, gemma-3-4b judge scored 1.0 (anti-collusion), status=passed honest ledger, no-regression vs qwen3.5-9b. Allowlist amended (+gate.py): fixed run_judge response_format:json_object which LM Studio 400s — provider-agnostic retry-without. Tests: router 5/5, offload judge-compat+calibration pass. Verifier: python scripts/gates/t4.py with LM Studio serving the tuned model on the eGPU)_
 - C3 — login + first-run retheme · author claude-opus · branch task/C3 @ f94830f · 2026-07-12 _(budget amended 300→1100 by owner directive — flagship scope, see LOG)_
 
 ## DONE (id · verified-by · date)
 
+- U12 — Check and Compare never open a file that is only in the cloud · verified-by claude-u12-verifier · 2026-11-15 _(merged to main @ 9ba1efb8, gate green on the merged tree before the commit. PASS first round; ~25 spellings tried, none opened a cloud-only file. 75 of 300. Carried: refuse UNC/device paths on Check (unelevated cannot list c$: 0 files, measured); the probe ignores the 500-file cap; TOCTOU.)_
 - U1 — catalogue the owner's data on every machine, Downloads first · verified-by claude-u1-verifier · 2026-11-15 _(merged to main @ b22d5525. PASS at round 2 after a FAIL: OneDrive as a compare target was read, and an 8.3 root spelling opened offline files. Budget overrun to ~501-529 of 500 accepted by the owner. Carried: Check of a folder that HOLDS OneDrive still hashes inside it (predates U1, reachable via library_check) - next; compare from a drive holding OneDrive; probe-to-hash TOCTOU; four test gaps the verifier's mutations found. Real-T480 criteria: the owner's Downloads run follows.)_
 - S23 — Everything lists the drive, and the catalogue keeps itself current · verified-by claude-s23-verifier · 2026-11-15 _(merged to main @ fa9112c1, s23 and c8 gates green on the merged tree. PASS first round; levels split to S32 on the owner's decision. Carried, non-blocking: the app.js/JobRunner services hand-off is untested and must be before the owner sets ESTATE_LIBRARY_RESCAN_HOURS above 0; the 99%, walkDays and due boundaries are untested; 'different drive' is tested only as never-catalogued; a scheduled tick can resume an owner-stopped pass.)_
 - C8 — the Drives tab, drawn as a blueprint · verified-by claude-c8-verifier · 2026-11-15 _(merged to main @ 8bd1ebcf. PASS at round 2 after a FAIL: a missing free-space figure drawn as a full drive in the danger colour. 256 of 500.)_
