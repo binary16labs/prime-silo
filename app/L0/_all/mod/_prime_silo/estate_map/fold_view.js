@@ -666,6 +666,42 @@ export function libraryView(s, { now = Date.now() } = {}) {
   };
 }
 
+// --- U6: what is only outside F: ------------------------------------------------------------------
+
+// One line per source, in the owner's order: what to copy onto F:, what is already there, and what
+// cannot be told (cloud-only files are never called "on F:"). Counts only; the list is a download.
+export function soleView(s, { now = Date.now() } = {}) {
+  const n = (x) => (Number(x) || 0).toLocaleString();
+  const ago = (iso) => `${ageLabel(now - (Date.parse(iso ?? "") || NaN))} ago`;
+  if (!s || typeof s !== "object" || s.error) return { why: s?.error ? `Cannot tell: ${s.error}.` : null, rows: [], computing: false };
+  if (s.why) return { why: `${s.why}.`, rows: [], computing: false };
+  const rows = (s.sources ?? []).map((x) => {
+    const name = `${nameOf(x.role, x.root)}${x.attached ? "" : " (away)"}`;
+    if (x.why) return { key: x.id, name, line: `${x.why[0].toUpperCase()}${x.why.slice(1)}.`, csv: null };
+    if (x.computing && !x.last) return { key: x.id, name, line: "Working out what is only here…", csv: null };
+    const c = x.computing ? x.last : x;
+    // the owner's choice (2026-11-15): the headline counts each content once; repeats are said apart
+    const repeats = c.to_copy.repeat_bytes ? ` (+${bytes(c.to_copy.repeat_bytes)} of repeats)` : "";
+    const cloud = c.cannot_tell.files ? ` Cannot tell for ${n(c.cannot_tell.files)} files only in the cloud (${bytes(c.cannot_tell.bytes)}).` : "";
+    const priv = c.private ? ` ${n(c.private)} private files counted, not listed.` : "";
+    return {
+      key: x.id,
+      name,
+      line:
+        `${n(c.to_copy.files)} files, ${bytes(c.to_copy.unique_bytes)} to copy onto ${s.target}${repeats}; ` +
+        `${n(c.on_f.files)} already there.${cloud}${priv}` +
+        (x.source_at ? ` Catalogued ${ago(x.source_at)}, ${s.target} ${ago(x.f_at)}.` : "") +
+        (x.computing ? " Updating…" : ""),
+      csv: x.listed ? `/api/estate/library/sole.csv?source=${encodeURIComponent(x.id)}` : null
+    };
+  });
+  return {
+    why: rows.length ? null : "Nothing catalogued yet besides F:.",
+    rows,
+    computing: (s.sources ?? []).some((x) => x.computing)
+  };
+}
+
 // --- the whole page -------------------------------------------------------------------------------
 
 // One call, so the view has no logic of its own. `reachable` is false when the hub did not answer,

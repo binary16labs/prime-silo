@@ -318,6 +318,18 @@
               <p class="em__roots"><button class="em__sweepbtn" @click="catalogueAll()">Catalogue my data</button></p>
             </template>
             <template x-if="lib.queue"><p class="em__sweeprun" x-text="lib.queue"></p></template>
+            <!-- U6: what is only outside F:, per source, from the catalogues: the copy list for stage 3 -->
+            <h3 class="em__soletitle">Only outside F:</h3>
+            <template x-if="sole.why"><p class="em__note" x-text="sole.why"></p></template>
+            <ul class="em__medialist em__sole">
+              <template x-for="r in sole.rows" :key="r.key">
+                <li class="em__mediarow">
+                  <b x-text="r.name"></b>
+                  <span x-text="r.line"></span>
+                  <template x-if="r.csv"><a class="em__sweepbtn" :href="r.csv" download>Download the list</a></template>
+                </li>
+              </template>
+            </ul>
             <ul class="em__medialist em__shelf">
               <template x-for="e in lib.shelf" :key="e.root">
                 <li class="em__mediarow">
