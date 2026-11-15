@@ -76,12 +76,25 @@
             <template x-if="drivesProblem"><p class="em__note em__problem" x-text="'the drives cannot be read: ' + drivesProblem"></p></template>
             <template x-if="!drivesProblem && !drives.length"><p class="em__note">No drive has been seen yet — the watch records them as they are attached.</p></template>
             <template x-for="d in drives" :key="d.identity">
-              <div class="em__drive" :data-off="!d.attached">
-                <h3 x-text="d.name || 'unnamed drive'"></h3>
+              <!-- C8: AN ELEVATION DRAWING. The outline is the capacity, the filled section what is used,
+                   the line above it the dimension; the same figures are said in words beside it and in
+                   the drawing's accessible name. A figure the OS did not give is drawn as unknown - a
+                   dashed outline, no fill - never as a guessed bar. Nothing here moves. -->
+              <div class="em__drive" :data-off="d.attached ? 'false' : 'true'" :data-full="elevation(d).full ? 'true' : 'false'">
+                <div class="em__drivehead">
+                  <h3 x-text="d.name || 'unnamed drive'"></h3>
+                  <span class="em__anno" x-text="(d.medium || 'unknown') + ' · ' + (d.attached ? ('attached at ' + d.root) : 'not attached')"></span>
+                </div>
+                <svg class="em__elev" viewBox="0 0 680 44" role="img" :aria-label="elevation(d).aria" :data-known="elevation(d).known ? 'true' : 'false'">
+                  <line class="em__dim" x1="2" y1="6" x2="678" y2="6"></line>
+                  <line class="em__dim" x1="2" y1="1" x2="2" y2="11"></line>
+                  <line class="em__dim" x1="678" y1="1" x2="678" y2="11"></line>
+                  <rect class="em__outline" x="2" y="16" width="676" height="24"></rect>
+                  <rect class="em__used" x="2" y="16" height="24" :width="elevation(d).usedWidth"></rect>
+                </svg>
                 <p class="em__drive-facts">
-                  <span x-text="d.medium || 'unknown'"></span>
-                  <span x-text="d.attached ? ('attached at ' + d.root) : 'not attached'"></span>
-                  <span x-text="size(d.capacity) + ' total, ' + size(d.free) + ' free'"></span>
+                  <span x-text="elevation(d).capLine"></span>
+                  <span x-text="elevation(d).useLine"></span>
                   <template x-if="d.stale"><span class="em__stale">not seen for a while</span></template>
                 </p>
                 <p class="em__drive-seen">
@@ -90,16 +103,20 @@
                   <span x-text="catalogued(d)"></span>
                 </p>
                 <template x-if="d.offers === 'user-roots'">
-                  <div class="em__roots">
+                  <!-- its own list, one folder per line: these sat in .em__roots, the sweep buttons' ROW,
+                       so seven folders were laid out like buttons with a sentence a word wide beside them -->
+                  <div class="em__droots">
                     <p class="em__note">Windows is on this drive, so the estate catalogues your own folders rather than the whole of it.</p>
-                    <template x-for="u in d.user_roots" :key="u.root">
-                      <p class="em__root">
-                        <span x-text="u.role"></span>
-                        <span x-text="u.root"></span>
-                        <template x-if="u.in_onedrive"><span class="em__onedrive">in OneDrive</span></template>
-                        <template x-if="u.added_by_owner"><span>you added this</span></template>
-                      </p>
-                    </template>
+                    <ol class="em__rootlist">
+                      <template x-for="u in d.user_roots" :key="u.root">
+                        <li class="em__root">
+                          <span class="em__rolename" x-text="u.role"></span>
+                          <span class="em__rootpath" x-text="u.root"></span>
+                          <template x-if="u.in_onedrive"><span class="em__mark em__onedrive">in OneDrive</span></template>
+                          <template x-if="u.added_by_owner"><span class="em__mark">you added this</span></template>
+                        </li>
+                      </template>
+                    </ol>
                   </div>
                 </template>
               </div>

@@ -35,6 +35,8 @@
   --font-stack-default: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-stack-readable: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-stack-active: var(--font-stack-default);
+  /* C8 — annotations on a drawing: figures, dimensions, paths. Never body copy. */
+  --font-stack-mono: ui-monospace, "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", monospace;
 }
 
 [data-readable-font="on"] {
