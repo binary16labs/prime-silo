@@ -93,7 +93,9 @@ drives: `ESTATE_STORE/library` when set, else `BENNY_HOME`. Lookups check both. 
 **OneDrive files not on this disk are never opened** (opening one downloads it). Before a user root's
 pass, the directory listing's attributes say which are cloud-only; those go to `online_only` (path,
 size, date), never `files`. An unreadable folder is not read; if Windows cannot answer, nothing is.
-Compare and Check refuse a root in OneDrive for the same reason.
+Compare and Check refuse any path inside OneDrive **or holding it** (U12). Check also probes what
+it is asked about before reading: a cloud-only file reads `online-only`, unopened, and if Windows
+cannot say, the check reads nothing.
 
 **Compare** (S20's Backups tab) takes Downloads as "from": "In Downloads, not on F:", F: asked through
 its catalogue.

@@ -13,7 +13,7 @@ import test from "node:test";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 
-import { CLOUD_MASK, catalogue, windowsCloudOnly } from "../server/coordination/lib/library.mjs";
+import { CLOUD_MASK, catalogue, checkPaths, windowsCloudOnly } from "../server/coordination/lib/library.mjs";
 import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
 import { listRoot, driveIdentity } from "../server/coordination/lib/estate_compare.mjs";
 import { addUserRoot, offeredRoots, openRegistry } from "../server/coordination/lib/drive_registry.mjs";
@@ -560,6 +560,101 @@ test("U1 round 2: from a registry-shaped machine only the owner's folders are ca
     await h.settle();
     const all = [...dbsIn(h.homeLib), ...dbsIn(h.storeLib)].flatMap((db) => rowsIn(db).map((r) => r.path));
     assert.deepEqual(all, ["setup.exe"], "one catalogue, holding Downloads' one file");
+  } finally {
+    await h.close();
+  }
+});
+
+// --- U12: Check and Compare never open a file that is only in the cloud ------------------------------
+
+test("U12: a check of a folder that holds OneDrive is refused, and so is comparing a drive that holds it", async () => {
+  const drive = tmp();
+  write(drive, "Photos/a.jpg", "same bytes");
+  const profile = tmp();
+  write(profile, "OneDrive/Pictures/a.jpg", "same bytes");
+  const offered = [
+    { root: path.join(profile, "OneDrive"), kind: "user", role: "onedrive", in_onedrive: true, removable: false, sections: [] },
+    { root: drive, kind: "drive", role: null, removable: true, sections: [] },
+    { root: profile, kind: "drive", role: null, removable: true, sections: [] }
+  ];
+  const h = await hubU1({ offered });
+  try {
+    await h.call("/library", { root: drive });
+    await h.settle();
+    const r = await h.call("/library/check", { root: drive, path: profile });
+    assert.equal(r.status, 400, r.text);
+    assert.match(r.json.error, /OneDrive/u);
+    for (const body of [{ from: profile, to: drive }, { from: drive, to: profile }])
+      assert.equal((await h.call("/compare", body)).status, 400, JSON.stringify(body));
+  } finally {
+    await h.close();
+  }
+});
+
+// a finished catalogue of a drive holding one file, and a folder elsewhere with a file of its size
+const checkCase = async () => {
+  const drive = tmp();
+  write(drive, "a.jpg", "same bytes");
+  const dbPath = path.join(tmp(), "lib.db");
+  await catalogue({ root: drive, dbPath });
+  const asked = path.join(tmp(), "a long folder name");
+  const away = write(asked, "away.jpg", "same bytes"); // same size: only a read could tell
+  const here = write(asked, "here.jpg", "same bytes");
+  return { drive, dbPath, asked, away, here };
+};
+
+test("U12: a cloud-only file asked about is answered online-only and never opened", async () => {
+  const k = await checkCase();
+  const read = [];
+  const r = await checkPaths(k.dbPath, k.drive, [], {
+    paths: [k.asked],
+    hash: (f) => (read.push(fold(f)), hashFile(f)),
+    cloudOnly: async () => ({ cloud: new Set([fold(k.away)]), unknown: [] })
+  });
+  assert.deepEqual(read, [fold(k.here)], "only the local file is read");
+  assert.equal(r.files.find((f) => fold(f.path) === fold(k.away)).verdict, "online-only");
+  assert.equal(r.files.find((f) => fold(f.path) === fold(k.here)).verdict, "on-root");
+});
+
+test("U12: if Windows cannot say, a check reads nothing; a folder it could not see is not read", async () => {
+  const k = await checkCase();
+  const read = [];
+  const spy = (f) => (read.push(f), hashFile(f));
+  const r = await checkPaths(k.dbPath, k.drive, [], { paths: [k.asked], hash: spy, cloudOnly: async () => { throw new Error("no listing"); } });
+  assert.match(r.refused ?? "", /nothing was read/u);
+  const u = await checkPaths(k.dbPath, k.drive, [], { paths: [k.asked], hash: spy, cloudOnly: async () => ({ cloud: new Set(), unknown: [fold(k.asked)] }) });
+  assert.ok(u.files.every((f) => f.verdict === "unreadable"));
+  assert.equal(read.length, 0);
+});
+
+test("U12: the real probe, through a short (8.3) spelling of the folder, keeps an offline file unopened", { skip: process.platform !== "win32" }, async () => {
+  const k = await checkCase();
+  assert.equal(spawnSync("attrib", ["+O", k.away]).status, 0);
+  const short = shortOf(k.asked);
+  assert.notEqual(short.toLowerCase(), k.asked.toLowerCase());
+  const read = [];
+  const r = await checkPaths(k.dbPath, k.drive, [], { paths: [short], hash: (f) => (read.push(f), hashFile(f)), cloudOnly: windowsCloudOnly });
+  assert.equal(read.length, 1, "only here.jpg");
+  assert.equal(r.files.filter((f) => f.verdict === "online-only").length, 1);
+});
+
+test("U12: the hub's own Check route probes before it reads, for a folder the registry does not know", async () => {
+  const drive = tmp();
+  write(drive, "a.jpg", "same bytes");
+  const asked = tmp();
+  const away = write(asked, "away.jpg", "same bytes");
+  const probed = [];
+  const h = await hubU1({
+    offered: [{ root: drive, kind: "drive", role: null, removable: true, sections: [] }],
+    cloudOnly: async (p) => (probed.push(p), { cloud: new Set([fold(away)]), unknown: [] })
+  });
+  try {
+    await h.call("/library", { root: drive });
+    await h.settle();
+    const r = await h.call("/library/check", { root: drive, path: asked });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.files.find((f) => fold(f.path) === fold(away))?.verdict, "online-only", r.text);
+    assert.ok(probed.length > 0, "the hub handed the check its probe");
   } finally {
     await h.close();
   }
