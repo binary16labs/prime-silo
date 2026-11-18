@@ -21,9 +21,9 @@
 
 - U13 — a proven offline copy of F: _(owner 2026-11-15: the backup comes AT THE END and is not a gate for moving forward - stage 5 of delivery/PLAN-consolidate-first.md, after the copies onto F:; it gates only the deletion of sources (U9))_
 
-- U8 — the signed copy: read back, never overwriting, never touching the source _(SIGNED by the owner 2026-11-18 with the three recommended answers; dep U7 DONE — enters READY at the bottom; owner may reorder)_
-
 ## CLAIMED (agent · date)
+
+- U8 · claude-opus-5-5 · 2026-11-18 _(the signed copy; moved to the top of READY by the owner and claimed at once)_
 
 
 
