@@ -14,4 +14,4 @@ Return ONLY a JSON object:
 ]
 }
 
-Rules: 3-4 chapters for THIS part; chapter numbers continue from the given starting number; every brief must name evidence it will draw on; JSON only.
+Rules: 3-4 chapters for THIS part; every brief states the chapter's turn on the vampire theme (what feeds, what is drained, what governs the hunger), and every chapter's motifs include at least one image from the vampire metaphor; chapter numbers continue from the given starting number; every brief must name evidence it will draw on; JSON only.

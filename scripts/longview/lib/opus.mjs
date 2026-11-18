@@ -315,7 +315,17 @@ function loadSeenSources() {
   return restored;
 }
 
-function sectionGate(text, arcSids = []) {
+// The book's theme, checked mechanically (2026-11-18: the v3 book named the vampire 3 times in
+// 36,684 words; the prompt asked for the metaphor "with restraint" and nothing checked it).
+// A section must name the vampire AND use the metaphor's language at least once more.
+const THEME_RE =
+  /\b(vampir\w*|feed(?:s|ing)?|fed|drain(?:s|ed|ing)?|hunger\w*|hungry|blood\w*|bit(?:e|es|ten)|thirst\w*|garlic|undead|fangs?|coffin|daylight|sunlight)\b/gi;
+export function themeHits(text) {
+  const hits = (String(text).match(THEME_RE) || []).map((h) => h.toLowerCase());
+  return { hits: hits.length, named: hits.some((h) => h.startsWith("vampir")) };
+}
+
+export function sectionGate(text, arcSids = []) {
   const words = text.split(/\s+/).filter(Boolean).length;
   const cites = (text.match(/\((sid|concept|doc):\s*[^)]+\)/g) || []).length;
   const citedSids = (text.match(/\(sid:\s*[a-z0-9]{6,}\s*\)/gi) || []).map((m) =>
@@ -336,7 +346,12 @@ function sectionGate(text, arcSids = []) {
     errs.push(
       `cite at least one of this section's arc sids: ${[...arcSet].slice(0, 4).join(", ")}`
     );
-  return { errs, words, cites, hitsArc };
+  const theme = themeHits(text);
+  if (!theme.named || theme.hits < 2)
+    errs.push(
+      "tie this episode to the AI Vampire theme in plain words: name the vampire, say what fed on what, what was drained, and what held the hunger in check"
+    );
+  return { errs, words, cites, hitsArc, theme: theme.hits };
 }
 
 // One connective-editor pass (LLM): does the draft draw the arc's cross-project
@@ -365,6 +380,10 @@ async function critiqueSection(arcList, draft) {
     if (v.cites_arc_sids === false) fixes.push("cite at least one sid from the assigned arc beats");
     if (v.invented === true)
       fixes.push("remove any project, sid, quote or number not in the evidence");
+    if (v.theme === false)
+      fixes.push(
+        "make the vampire theme do work here: say what fed on what in this episode and what held the hunger in check"
+      );
     return { fixes, connects: v.connects ?? null, invented: v.invented ?? null };
   } catch {
     return { fixes: [], connects: null };

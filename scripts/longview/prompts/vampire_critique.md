@@ -7,7 +7,8 @@ Judge the draft ONLY on connective substance and grounding — not prose polish.
 "cites_arc_sids": true|false, // does it cite at least one sid from the assigned arc beats?
 "timeline_anchored": true|false, // does it place events in real time (a month, a "before/after", a sequence)?
 "invented": true|false, // does it invent projects, sids, quotes, or numbers not in the evidence?
+"theme": true|false, // does it say, in plain words, how this episode bears on the AI Vampire theme (what fed on what, what was drained, what held the hunger in check)?
 "fixes": ["specific, actionable fix", "..."] // 1-4 items; empty if the draft is strong
 }
 
-Be strict. A section that reads well but only covers one project in isolation FAILS "connects". A section citing sids that aren't in the arc or evidence FAILS "invented". Keep fixes concrete: name the missing connection or the sid that should anchor it.
+Be strict. A section that reads well but only covers one project in isolation FAILS "connects". A section citing sids that aren't in the arc or evidence FAILS "invented". A section that never ties its events to the vampire theme, or only drops the word as decoration, FAILS "theme". Keep fixes concrete: name the missing connection or the sid that should anchor it.

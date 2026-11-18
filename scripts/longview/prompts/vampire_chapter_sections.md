@@ -13,4 +13,4 @@ Return ONLY a JSON object:
 ]
 }
 
-Rules: 5-7 sections; ids follow p<part>c<chapter>s<n> using the given part/chapter numbers; each section must be writable from evidence (scenes from sessions, decisions, failures, code structure) — no filler; the LAST section should land the chapter's point and hand off to the next chapter. JSON only.
+Rules: 5-7 sections; every brief names how the section bears on the vampire theme (what feeds on what, what is drained, what holds the hunger in check); ids follow p<part>c<chapter>s<n> using the given part/chapter numbers; each section must be writable from evidence (scenes from sessions, decisions, failures, code structure) — no filler; the LAST section should land the chapter's point and hand off to the next chapter. JSON only.
