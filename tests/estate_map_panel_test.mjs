@@ -608,7 +608,8 @@ test("the panel reads the map from the estate map API, and talks to nothing but 
   for (const url of fetched)
     assert.match(
       url,
-      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop|library\/all|library\/sole|library\/plan|library\/plan\/raise|drives)$/u,
+      // U8: the signed copy and its Stop
+      /^\/api\/estate\/(map|sweep|compare|compare\/stop|library|library\/stop|library\/all|library\/sole|library\/plan|library\/plan\/raise|library\/copy|library\/copy\/stop|drives)$/u,
       `${url} is not the map, Sweep, a comparison, the library or the drives`
     );
 });
@@ -3360,4 +3361,40 @@ test("U7 (panel): each source's plan says what goes where, whether it fits, what
     false,
     "nothing on this tab signs: signing is the owner's, in Governance"
   );
+});
+
+// --- U8: the signed copy ------------------------------------------------------------------------------
+
+test("U8 (panel): Copy appears only on a proposal you signed; otherwise the reason shows; progress and Stop while it runs", async () => {
+  const counts = (o) => ({ copy: { files: 0, bytes: 0 }, repeats: { files: 0, bytes: 0 }, excluded: {}, cannot_tell: { files: 0, bytes: 0 }, renames: 0, private: 0, on_f: 0, ...o });
+  const src = (id, source, proposal) => ({ id, source, attached: true, folder: `consolidated/${source}`, digest: "d", fits: true, proposal, ...counts({ copy: { files: 774, bytes: 32_212_254_720 } }) });
+  const plan = {
+    target: "F:",
+    free_bytes: 3_200_000_000_000,
+    governance_ok: true,
+    sources: [
+      src("library-dl", "Downloads", { id: "copy-library-dl-d", state: "signed", authorised: true }),
+      src("library-od", "OneDrive", { id: "copy-library-od-e", state: "signed", authorised: false }),
+      src("library-pi", "Pictures", { id: "copy-library-pi-f", state: "open", authorised: false }),
+      { ...src("library-g", "drive-1a2b3c4d", { id: "copy-library-g-g", state: "signed", authorised: true }), attached: false }
+    ],
+    copy: { running: null, last: { run_id: "copy-1", source: "Desktop", outcome: "ok", counts: { copied: 12, already: 2, changed: 1, cloud_only: 3, refused: 0, bytes: 1 } } }
+  };
+  const { window } = await renderPanel({ at: NOW, machines: { t480: machine({}) } }, { plan });
+  await openTab(window, "library");
+  const text = visible(window);
+  assert.match(text, /Downloads .*Signed by you: press Copy when you are ready\./u);
+  assert.match(text, /OneDrive .*Signed, but not by you: it cannot be copied\./u);
+  assert.match(text, /Last copy of Desktop: ok\. 12 copied, 2 already there, 1 changed since the plan \(re-plan to copy them\), 3 only in the cloud\./u);
+  assert.deepEqual([...window.document.querySelectorAll(".em__plan button")].map((b) => b.textContent), ["Copy"], "Copy only on the proposal a human signed");
+  const posted = await pressing(window, ".em__plan", /^Copy$/u, plan);
+  assert.deepEqual(posted, [{ url: "/api/estate/library/copy", body: { source: "library-dl", proposal: "copy-library-dl-d" } }], "the proposal shown is the proposal asked for");
+
+  const running = { ...plan, copy: { running: { run_id: "copy-2", source: "Downloads", step: 3, steps: 16, counts: { copied: 120, bytes: 2_147_483_648 } }, last: null } };
+  const live = await renderPanel({ at: NOW, machines: { t480: machine({}) } }, { plan: running });
+  await openTab(live.window, "library");
+  assert.match(visible(live.window), /Copying Downloads: step 3 of 16 · 120 files, 2\.0 GB placed\./u);
+  assert.equal([...live.window.document.querySelectorAll(".em__plan button")].length, 0, "no second Copy while one runs");
+  const stop = await pressing(live.window, ".em__library", /^Stop$/u, running);
+  assert.deepEqual(stop, [{ url: "/api/estate/library/copy/stop", body: {} }], "Stop stops the copy");
 });
