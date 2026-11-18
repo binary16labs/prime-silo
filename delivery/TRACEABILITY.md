@@ -38,5 +38,5 @@
 | O2+O1 | estate-cockpit      | EP-N             | M8        | N4 N5 N6 N7                                                               |
 | O2    | estate-map          | EP-S             | M10       | S0 S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S11 S12 S13 S14 S15 S16 S17 S18 S19 S20 |
 | O2    | librarian           | EP-S             | M10       | S21 S22 S23 S24 S25 S26 S27 S28 S29 S30 S31 S32                                           |
-| O2    | consolidation       | EP-U             | M11       | U0 U1 U6 U7 U11 U12 U13                                                                 |
+| O2    | consolidation       | EP-U             | M11       | U0 U1 U6 U7 U8 U11 U12 U13                                                                 |
 | O2    | knowledge           | EP-K             | M12       | K0                                                                        |
