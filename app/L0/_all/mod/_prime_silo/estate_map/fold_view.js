@@ -709,9 +709,27 @@ export function soleView(s, { now = Date.now() } = {}) {
 const PROPOSAL_LINE = {
   "not raised": "Not raised yet.",
   open: "Raised: waiting for your signature in Governance.",
-  signed: "Signed by you: ready for U8 to copy.",
+  signed: "Signed by you: press Copy when you are ready.",
   declined: "Declined."
 };
+// U8: a running copy says where it is; the last one says how it went, in counts
+function copyLine(c) {
+  const k = (c?.running ?? c?.last)?.counts ?? {};
+  const n = (x) => (Number(x) || 0).toLocaleString();
+  if (c?.running)
+    return `Copying ${c.running.source}: step ${c.running.step ?? 0} of ${c.running.steps ?? "?"} · ${n(k.copied)} files, ${bytes(k.bytes || 0)} placed.`;
+  const l = c?.last;
+  if (!l) return null;
+  const said = [
+    `${n(k.copied)} copied`,
+    k.already ? `${n(k.already)} already there` : "",
+    k.refused ? `${n(k.refused)} refused (the name holds other content)` : "",
+    k.changed ? `${n(k.changed)} changed since the plan (re-plan to copy them)` : "",
+    k.cloud_only ? `${n(k.cloud_only)} only in the cloud` : "",
+    k.unreadable ? `${n(k.unreadable)} could not be read` : ""
+  ].filter(Boolean);
+  return `Last copy of ${l.source}: ${l.outcome}${l.why ? ` (${l.why})` : ""}. ${said.join(", ")}.`;
+}
 export function planView(s) {
   const n = (x) => (Number(x) || 0).toLocaleString();
   if (!s || typeof s !== "object" || s.error) return { why: s?.error ? `Cannot plan: ${s.error}.` : null, cards: [] };
@@ -732,19 +750,26 @@ export function planView(s) {
       x.renames ? `${n(x.renames)} names already on ${s.target} get "(from ${x.source})".` : "",
       left ? `Left out: ${left}.` : "",
       x.cannot_tell.files ? `Not planned: ${n(x.cannot_tell.files)} files only in the cloud.` : "",
-      PROPOSAL_LINE[x.proposal?.state] ?? ""
+      x.proposal?.state === "signed" && !x.proposal.authorised
+        ? "Signed, but not by you: it cannot be copied."
+        : (PROPOSAL_LINE[x.proposal?.state] ?? "")
     ];
     return {
       key: x.id,
       name,
       line: parts.filter(Boolean).join(" "),
-      raise: x.proposal?.state === "not raised" && x.copy.files > 0 && x.fits !== false
+      raise: x.proposal?.state === "not raised" && x.copy.files > 0 && x.fits !== false,
+      // U8: Copy only on a proposal the owner signed, and never while a copy runs
+      copy: Boolean(x.proposal?.authorised) && x.attached !== false && !s.copy?.running,
+      proposal: x.proposal?.id ?? null
     };
   });
   return {
     why: s.governance_ok === false ? "The governance log does not verify: nothing can be raised until it does." : cards.length ? null : "Nothing to plan yet.",
     cards,
-    computing: (s.sources ?? []).some((x) => x.computing)
+    copying: copyLine(s.copy),
+    stop: Boolean(s.copy?.running),
+    computing: (s.sources ?? []).some((x) => x.computing) || Boolean(s.copy?.running)
   };
 }
 

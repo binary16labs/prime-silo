@@ -15,8 +15,11 @@ import { createComparer, listRoot, rootIdentity } from "./estate_compare.mjs";
 import { everythingAdapter } from "./estate_map_files.mjs";
 import { createSoleReporter } from "./estate_sole.mjs";
 import { createCopyPlanner, readPolicy, validatePolicy } from "./estate_plan_copy.mjs";
-import { proposalRaisedEvent, loadGovernance } from "./governance.mjs";
-import { appendKelEvent } from "./kel.mjs";
+import { proposalRaisedEvent, loadGovernance, buildGovernance, isAuthorised } from "./governance.mjs";
+import { appendKelEvent, ulid } from "./kel.mjs";
+import { copyRefusal, startCopy } from "./estate_copy.mjs";
+import { runRecordedEvent } from "./runs.mjs";
+import crypto from "node:crypto";
 import { governanceLogPath, ensureParent } from "../../lib/estate_store.js";
 import { createLibrarian, finishedAtOf, libraryPathFor, windowsCloudOnly } from "./library.mjs";
 import {
@@ -423,7 +426,9 @@ export function createEstateApi({
     } catch {
       // unknown free space is said as unknown, never as "fits"
     }
-    const gov = loadGovernance(govFile());
+    // U8: the raw events too, so a proposal says whether a HUMAN signed it (only that authorises a copy)
+    const { ok: govOk, events = [] } = readKelEvents(govFile());
+    const gov = { ok: govOk, ...buildGovernance(events) };
     // round 2 (B4): names must be unique on F: - two sources sharing one folder would mix their copies
     const listed = soleSources().filter((s) => path.resolve(s.db) !== path.resolve(targetDb));
     const names = listed.map(nameFor);
@@ -437,9 +442,72 @@ export function createEstateApi({
         const prop = proposalId ? (gov.proposals ?? []).find((x) => x.id === proposalId) : null;
         // a 5% margin: a copy that would leave F: nearly full is said not to fit
         const fits = free == null || !p.copy ? null : p.copy.bytes <= free * 0.95;
-        return { ...p, role: s.role, attached: s.attached, fits, proposal: proposalId && { id: proposalId, state: prop?.state ?? "not raised" } };
+        return { ...p, role: s.role, attached: s.attached, fits, proposal: proposalId && { id: proposalId, state: prop?.state ?? "not raised", authorised: isAuthorised(events, proposalId) } };
       });
-    return { target: TARGET, policy, free_bytes: free, governance_ok: gov.ok !== false, sources };
+    return { target: TARGET, policy, free_bytes: free, governance_ok: gov.ok !== false, sources, events };
+  };
+
+  // U8: THE SIGNED COPY - one at a time, off the hub's thread. Its state rides on GET /library/plan.
+  let copying = null;
+  let lastCopy = null;
+  const copyState = () => ({
+    running: copying && { run_id: copying.run_id, source: copying.source, ...copying.progress },
+    last: lastCopy
+  });
+  const startSignedCopy = (b) => {
+    const all = planAll();
+    const p = all.sources.find((x) => x.id === b.source);
+    if (!p) return [404, { error: "no plan for that source" }];
+    let rehashed = null;
+    let items = [];
+    try {
+      items = fs.readFileSync(p.items_file, "utf8").split("\n").filter(Boolean);
+      rehashed = crypto.createHash("sha256").update(items.join("\n")).digest("hex");
+    } catch {
+      // no list: the refusal says it does not match
+    }
+    const raised = all.events.find((x) => x.type === "proposal_raised" && x.subject?.id === `proposal:${p.proposal?.id}`);
+    const claimed = (raised?.payload?.evidence ?? []).find((x) => String(x).startsWith("digest:"))?.slice(7) ?? null;
+    const why = copyRefusal({
+      machine: producer.machine,
+      writer: producer.copyWriter,
+      copying: Boolean(copying),
+      targetPass: librarian.status().running?.root === TARGET,
+      plan: p,
+      asked: b.proposal,
+      chainOk: all.governance_ok,
+      rehashed,
+      claimed,
+      free: all.free_bytes,
+      target: TARGET
+    });
+    if (why) return [String(producer.machine).toLowerCase() !== (producer.copyWriter ?? "t480") ? 403 : 409, { error: why }];
+    const run_id = `copy-${ulid()}`;
+    const job = {
+      items: items.map((l) => JSON.parse(l)),
+      sourceRoot: soleSources().find((s) => sourceIdOf(s.db) === p.id).root,
+      targetRoot: TARGET,
+      targetIdentity: rootIdentity(TARGET),
+      staging: path.join(TARGET, all.policy.folder, ".staging", p.proposal.id),
+      recordFile: path.join(storeLib ?? homeLib, "copies", `${run_id}.jsonl`)
+    };
+    const run = { run_id, source: p.source, progress: {} };
+    const handle = startCopy(job, { inline: producer.copyWith ?? null, onProgress: (x) => (run.progress = x) });
+    copying = Object.assign(run, { stop: handle.stop });
+    const finish = (r) => {
+      // one run record: what ran, under which proposal, and counts - never a path
+      const outcome = r.outcome ?? "failed";
+      try {
+        appendKelEvent(govFile(), runRecordedEvent({ runId: run_id, machine: producer.machine, task: "estate.copy", proposalId: p.proposal.id, outcome, detail: { counts: r.counts ?? null } }));
+      } catch {
+        // the copy happened; a ledger that cannot be written is said in the last result
+        r.ledger = "not recorded";
+      }
+      lastCopy = { run_id, source: p.source, outcome, counts: r.counts ?? null, ...(r.why ? { why: r.why } : {}), ...(r.ledger ? { ledger: r.ledger } : {}) };
+      copying = null;
+    };
+    handle.done.then(finish, (e) => finish({ outcome: "failed", why: String(e?.message || e) }));
+    return [202, { run_id }];
   };
 
   // S20: a backup drive against F:, on this machine. Results hold file names, so every compare route
@@ -695,6 +763,8 @@ export function createEstateApi({
       rest === "/library/plan" ||
       rest === "/library/plan/raise" ||
       rest === "/library/policy" ||
+      rest === "/library/copy" ||
+      rest === "/library/copy/stop" ||
       rest === "/compare/stop"
     ) {
       if (!local(req))
@@ -741,15 +811,25 @@ export function createEstateApi({
 
       const offer = shelf();
       const roots = offer.map((e) => e.root);
-      if (rest === "/library/plan" || rest === "/library/plan/raise" || rest === "/library/policy") {
+      if (rest === "/library/plan" || rest === "/library/plan/raise" || rest === "/library/policy" || rest === "/library/copy" || rest === "/library/copy/stop") {
         if (!Array.isArray(quarantine)) return sendJson(res, 412, { error: NO_POLICY });
         if (req.method === "GET" && rest === "/library/plan") {
-          const all = planAll();
-          return sendJson(res, 200, { ...all, sources: all.sources.map(({ items_file, key, ...x }) => x) });
+          const { events, ...all } = planAll();
+          return sendJson(res, 200, { ...all, sources: all.sources.map(({ items_file, key, ...x }) => x), copy: copyState() });
         }
-        if (req.method !== "POST") return sendJson(res, 405, { error: "GET /library/plan, POST /library/plan/raise or /library/policy" });
+        if (req.method !== "POST") return sendJson(res, 405, { error: "GET /library/plan, POST /library/plan/raise, /library/policy, /library/copy or /library/copy/stop" });
+        // U8: Stop ends the run between batches; what was placed stays placed, and a re-run resumes
+        if (rest === "/library/copy/stop") {
+          if (!copying) return sendJson(res, 409, { error: "no copy is running" });
+          copying.stop();
+          return sendJson(res, 202, { stopping: copying.run_id });
+        }
         readBody(req)
           .then((b) => {
+            if (rest === "/library/copy") {
+              const [code, body] = startSignedCopy(b);
+              return sendJson(res, code, body);
+            }
             if (rest === "/library/policy") {
               let next;
               try {
@@ -797,7 +877,7 @@ export function createEstateApi({
               : sendJson(res, 201, { proposal: { id: p.proposal.id, state: "open" } });
           })
           .catch((e) => {
-            if (!res.headersSent) sendJson(res, 500, { error: `${rest === "/library/policy" ? "the policy could not be saved" : "the plan could not be raised"}: ${e?.message || e}` });
+            if (!res.headersSent) sendJson(res, 500, { error: `${rest === "/library/policy" ? "the policy could not be saved" : rest === "/library/copy" ? "the copy could not be started" : "the plan could not be raised"}: ${e?.message || e}` });
           });
         return;
       }

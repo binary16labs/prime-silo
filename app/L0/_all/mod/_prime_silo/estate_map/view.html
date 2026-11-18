@@ -328,9 +328,13 @@
                   <b x-text="c.name"></b>
                   <span x-text="c.line"></span>
                   <template x-if="c.raise"><button class="em__sweepbtn" @click="raisePlan(c.key)">Raise for signing</button></template>
+                  <!-- U8: only on a proposal you signed; signing alone starts nothing -->
+                  <template x-if="c.copy"><button class="em__sweepbtn" @click="copyPlan(c.key, c.proposal)">Copy</button></template>
                 </li>
               </template>
             </ul>
+            <template x-if="plan.copying"><p class="em__sweeprun" x-text="plan.copying"></p></template>
+            <template x-if="plan.stop"><p class="em__roots"><button class="em__sweepbtn" @click="stopCopy()">Stop</button></p></template>
             <h3 class="em__soletitle">Only outside F:</h3>
             <template x-if="sole.why"><p class="em__note" x-text="sole.why"></p></template>
             <ul class="em__medialist em__sole">

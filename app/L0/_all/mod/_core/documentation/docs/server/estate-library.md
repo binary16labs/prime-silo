@@ -26,6 +26,8 @@ policy, because the catalogue names files.
 | `GET /library/folder?root=&path=&offset=&limit=` | one folder: its own figures, its immediate subfolders with theirs, the files directly in it, and the breadcrumb   |
 | `GET /library/neighbours?root=&path=`            | which folders hold the other copies of this folder's content                                                      |
 | `POST /library/check` `{path, root}`             | is this file, or every file under this folder, already on the drive: `on-root` with where, `changed`, or `absent` |
+| `POST /library/copy` `{source, proposal}`        | U8: copy a plan the owner signed onto F: (202), or 403/409 with the reason                                        |
+| `POST /library/copy/stop`                        | U8: stop the running copy between batches; what was placed stays placed                                           |
 
 ## The three guards
 
@@ -120,6 +122,32 @@ planned. `coordination/estate/storage-policy.json` is the owner's (`POST /librar
 logged; the target never leaves the signed drive). `POST /library/plan/raise` puts a plan forward as a
 `proposal_raised` in the governance log with its exact digest; **only the owner signs**, in
 Governance, and a newer pass makes a new, unsigned plan. Nothing is copied here (U8).
+
+## The signed copy (U8)
+
+Stage 3b. `POST /library/copy` `{source, proposal}` carries out a plan **the owner signed**, and
+only on the T480 (the one writer to F:). The owner presses Copy: signing alone starts nothing.
+Every refusal names its reason: not raised, waiting for the signature, signed but not by a human,
+the plan changed since that proposal, the file list does not re-hash to the signed digest, the
+source is away, F: is being catalogued, a copy is already running, or F: lacks room for the copy
+and 10 GB besides. A run goes **one source folder at a time** (at most 50 files a batch), in a
+worker off the hub's thread:
+
+1. The folder's listing says which files are only in the cloud; those are skipped, never opened.
+2. robocopy (`/COPY:DAT /DCOPY:T /Z`, never `/MOV`, `/MIR` or `/PURGE`) stages the batch in
+   `F:\consolidated\.staging\<proposal>\`.
+3. Each staged file is read back. If its sha256 is the planned one it is placed by a **hard link**
+   to its final name, which fails on an existing name, so nothing on F: is ever overwritten. If not,
+   the source changed after the plan: it is skipped and counted (re-plan to copy it). Staging is
+   always cleared.
+
+A re-run resumes: a file already in place with the right sha256 is "already there", and a name
+holding other content is refused. `POST /library/copy/stop` stops between batches. Repeats are
+recorded as pointers, never copied twice. The run's progress and the last result ride on
+`GET /library/plan` (`copy`). Each run writes **one** `execution_recorded` event to the governance
+log (run id, proposal id, outcome and counts, never a path), which is what the unauthorised-runs
+gauge counts; the per-file record goes to `<store>/library/copies/<run_id>.jsonl` beside the
+catalogues.
 
 ## Walking the tree (S26)
 

@@ -217,6 +217,13 @@ window.estateMapPage = function estateMapPage() {
     raisePlan(source) {
       return this.ask("/api/estate/library/plan/raise", { source }, "libraryError", () => this.refreshLibrary());
     },
+    // U8: carry out the plan the owner signed - the hub refuses anything else, and says why
+    copyPlan(source, proposal) {
+      return this.ask("/api/estate/library/copy", { source, proposal }, "libraryError", () => this.refreshLibrary());
+    },
+    stopCopy() {
+      return this.ask("/api/estate/library/copy/stop", {}, "libraryError", () => this.refreshLibrary());
+    },
     // U1: every offered root in the owner's order, one pass at a time; Stop clears the queue
     catalogueAll() {
       return this.ask("/api/estate/library/all", {}, "libraryError", () => this.refreshLibrary());
