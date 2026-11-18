@@ -154,6 +154,20 @@ test("U8 round 2: batches of at most `size` files; the cloud-only match ignores 
   assert.equal(r.counts.repeats_unplaced, 1, "y.bin's first copy, x.bin, was only in the cloud");
 });
 
+test("U8 round 2: when robocopy says a batch failed, a half-copied file is 'could not be copied whole', not 'changed'", async () => {
+  const e = await estate();
+  const half = async (from, to, names) => {
+    await fakeCopy()(from, to, names);
+    if (names.includes("one.txt")) fs.writeFileSync(path.join(to, "one.txt"), "o"); // cut short
+    return names.includes("one.txt") ? 9 : 1;
+  };
+  const lines = [];
+  const r = await run(e, { copy: half, record: (x) => lines.push(x) });
+  assert.equal(r.counts.unreadable, 1);
+  assert.equal(r.counts.changed, 0);
+  assert.equal(lines.find((l) => l.from === "c/one.txt").result, "skipped: could not be copied whole");
+});
+
 test("U8 round 2: a folder at a planned name is refused, not a failed run; the drive check compares identities", async () => {
   const e = await estate();
   fs.mkdirSync(path.join(e.f, ...e.items.find((i) => i.from === "notes.txt").to.split("/")), { recursive: true });
