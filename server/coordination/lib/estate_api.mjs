@@ -298,7 +298,7 @@ export function createEstateApi({
         out.skipped.push({ root, why: "not due" });
         continue;
       }
-      const s = librarian.start(root, { startedBy: "schedule" });
+      const s = startPass(root, { startedBy: "schedule" });
       if (!s.started) {
         out.skipped.push({ root, why: "a pass is already running" });
         break;
@@ -336,7 +336,7 @@ export function createEstateApi({
   const nextInQueue = (q) => {
     while (q === queue && q.next < q.roots.length) {
       const root = q.roots[q.next++];
-      const s = librarian.start(root);
+      const s = startPass(root);
       if (!s.started) {
         q.done.push({ root, why: s.reason || "another pass was running" });
         continue;
@@ -442,7 +442,12 @@ export function createEstateApi({
         const prop = proposalId ? (gov.proposals ?? []).find((x) => x.id === proposalId) : null;
         // a 5% margin: a copy that would leave F: nearly full is said not to fit
         const fits = free == null || !p.copy ? null : p.copy.bytes <= free * 0.95;
-        return { ...p, role: s.role, attached: s.attached, fits, proposal: proposalId && { id: proposalId, state: prop?.state ?? "not raised", authorised: isAuthorised(events, proposalId) } };
+        // U8 round 2: authorised means the proposal is SIGNED now (a declined one stays declined, whatever
+        // is appended after it) AND the very signature that signed it was a human's. The fold's state
+        // does not ask who signed, and isAuthorised does not ask when: a human signature appended
+        // before the raise plus an agent's after it passed both separately.
+        const signedBy = prop?.state === "signed" ? events.find((x) => x.id === prop.signature?.event_id) : null;
+        return { ...p, role: s.role, attached: s.attached, fits, proposal: proposalId && { id: proposalId, state: prop?.state ?? "not raised", authorised: signedBy?.authorship === "human" && isAuthorised(events, proposalId) } };
       });
     return { target: TARGET, policy, free_bytes: free, governance_ok: gov.ok !== false, sources, events };
   };
@@ -450,6 +455,11 @@ export function createEstateApi({
   // U8: THE SIGNED COPY - one at a time, off the hub's thread. Its state rides on GET /library/plan.
   let copying = null;
   let lastCopy = null;
+  // every pass - the button, Catalogue my data's queue, the schedule - starts here: while a copy writes
+  // to F:, F: is not catalogued (it would read the staging folder and half a copy; round 1 note)
+  function startPass(root, opts) {
+    return copying && root === TARGET ? { started: false, reason: `${TARGET} is being copied onto: catalogue it when the copy ends` } : librarian.start(root, opts);
+  }
   const copyState = () => ({
     running: copying && { run_id: copying.run_id, source: copying.source, ...copying.progress },
     last: lastCopy
@@ -1083,7 +1093,7 @@ export function createEstateApi({
           return sendJson(res, 400, { error: `${b.root} is Windows' own, not the owner's data: never catalogued` });
         if (!roots.includes(b.root))
           return sendJson(res, 400, { error: "root must be one this machine offers", roots });
-        const r = librarian.start(b.root);
+        const r = startPass(b.root);
         if (!r.started && r.reason) return sendJson(res, 400, { error: r.reason });
         sendJson(
           res,

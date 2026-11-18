@@ -8,10 +8,10 @@ import path from "node:path";
 import test from "node:test";
 import { catalogue } from "../server/coordination/lib/library.mjs";
 import { DEFAULT_POLICY, planCopy } from "../server/coordination/lib/estate_plan_copy.mjs";
-import { copyRefusal, robocopyArgs, runCopy } from "../server/coordination/lib/estate_copy.mjs";
+import { copyRefusal, robocopyArgs, runCopy, targetCheck } from "../server/coordination/lib/estate_copy.mjs";
 import { createEstateApi } from "../server/coordination/lib/estate_api.mjs";
 import { appendKelEvent, readKelEvents, ulid, CURRENT_SCHEMA_VERSION } from "../server/coordination/lib/kel.mjs";
-import { proposalSignedEvent, unauthorisedRuns } from "../server/coordination/lib/governance.mjs";
+import { proposalDeclinedEvent, proposalSignedEvent, unauthorisedRuns } from "../server/coordination/lib/governance.mjs";
 import { collectRuns } from "../server/coordination/lib/runs.mjs";
 import { hashFile } from "../server/coordination/lib/nas_catalog.mjs";
 
@@ -60,7 +60,7 @@ const fakeCopy = (calls = []) => async (from, to, names) => {
 };
 const noCloud = async () => new Set();
 
-const estate = async () => {
+const estate = async (extra = {}) => {
   const f = tmp();
   write(f, "Photos/beach.jpg", "beach photo bytes");
   const src = tmp();
@@ -69,6 +69,7 @@ const estate = async () => {
   write(src, "b/y.bin", "repeated content"); // a repeat: a pointer, never a second copy
   write(src, "c/one.txt", "one");
   write(src, "c/two.txt", "two");
+  for (const [rel, data] of Object.entries(extra)) write(src, rel, data);
   const fDb = path.join(tmp(), "f.db");
   const sDb = path.join(tmp(), "s.db");
   await catalogue({ root: f, dbPath: fDb });
@@ -102,6 +103,66 @@ test("U8: robocopy is asked to copy - never to move, mirror or purge", () => {
   for (const f of ["/COPY:DAT", "/DCOPY:T", "/Z"]) assert.ok(a.includes(f), f);
   assert.ok(!a.some((x) => /^\/(MOV|MOVE|MIR|PURGE)$/iu.test(x)));
   assert.throws(() => robocopyArgs("C:\\src", "F:\\stage", ["/MIR"]), /never/u, "a file name cannot smuggle a flag in");
+  for (const n of ["-MOV", "-move", "-L", "-MIR.txt"]) assert.throws(() => robocopyArgs("C:\\src", "F:\\stage", [n]), /never/u, `round 2 (B1): ${n}`);
+});
+
+test("U8 round 2 (B1): files named like robocopy switches are skipped, and the source is untouched - with real robocopy", { skip: !WIN }, async () => {
+  const e = await estate({ "d/-MOV": "m", "d/-L": "l", "d/-MIR.txt": "x", "d/report.docx": "report" });
+  write(e.src, "d/report.docx", "report, edited after the plan");
+  const before = snapshot(e.src);
+  const r = await runCopy({ items: e.items, sourceRoot: e.src, targetRoot: e.f, staging: e.staging, cloudOnly: noCloud });
+  assert.equal(r.outcome, "ok");
+  assert.deepEqual(snapshot(e.src), before, "nothing moved out of the source");
+  assert.equal(r.counts.unsafe_name, 3);
+  assert.equal(r.counts.changed, 1, "the edited file is skipped, and still at the source");
+  assert.equal(fs.readFileSync(path.join(e.src, "d", "report.docx"), "utf8"), "report, edited after the plan");
+});
+
+test("U8 round 2 (B2): a locked file is skipped and counted; the rest of the run goes on; a re-run places it", { skip: !WIN }, async () => {
+  const e = await estate({ "L/a.txt": "a", "L/locked.txt": "locked", "L/c.txt": "c", "M/after.txt": "after" });
+  const lockFile = path.join(e.src, "L", "locked.txt");
+  const { spawn } = await import("node:child_process");
+  const ps = spawn("powershell.exe", ["-NoProfile", "-Command", `$h=[IO.File]::Open('${lockFile}','Open','Read','None'); 'LOCKED'; [Console]::In.ReadLine() | Out-Null; $h.Close()`]);
+  await new Promise((res) => ps.stdout.on("data", (d) => String(d).includes("LOCKED") && res()));
+  let r;
+  try {
+    r = await runCopy({ items: e.items, sourceRoot: e.src, targetRoot: e.f, staging: e.staging, cloudOnly: noCloud });
+  } finally {
+    ps.stdin.end("\n");
+    await new Promise((res) => ps.on("close", res));
+  }
+  assert.equal(r.outcome, "ok");
+  assert.equal(r.counts.unreadable, 1);
+  assert.equal(r.counts.copied, e.items.filter((i) => i.to).length - 1, "everything else is placed");
+  assert.ok(!fs.existsSync(e.staging));
+  const again = await runCopy({ items: e.items, sourceRoot: e.src, targetRoot: e.f, staging: e.staging, cloudOnly: noCloud });
+  assert.equal(again.counts.copied, 1, "the re-run gets past it");
+});
+
+test("U8 round 2: batches of at most `size` files; the cloud-only match ignores case; a repeat of a skipped file is not a pointer", async () => {
+  const e = await estate({ "c/Big.PDF": "big" });
+  const calls = [];
+  const r = await run(e, {
+    size: 1,
+    copy: fakeCopy(calls),
+    cloudOnly: async (dir) => new Set({ c: ["big.pdf"], a: ["x.bin"] }[path.basename(dir)] ?? [])
+  });
+  assert.ok(calls.every((c) => c.names.length === 1), "one file a batch");
+  assert.ok(!calls.some((c) => c.names.includes("Big.PDF")), "Big.PDF is the listing's big.pdf");
+  assert.equal(r.counts.cloud_only, 2);
+  assert.equal(r.counts.pointers, 0);
+  assert.equal(r.counts.repeats_unplaced, 1, "y.bin's first copy, x.bin, was only in the cloud");
+});
+
+test("U8 round 2: a folder at a planned name is refused, not a failed run; the drive check compares identities", async () => {
+  const e = await estate();
+  fs.mkdirSync(path.join(e.f, ...e.items.find((i) => i.from === "notes.txt").to.split("/")), { recursive: true });
+  const r = await run(e);
+  assert.equal(r.outcome, "ok");
+  assert.equal(r.counts.refused, 1);
+  const { rootIdentity } = await import("../server/coordination/lib/estate_compare.mjs");
+  assert.equal(targetCheck({ targetRoot: e.f, targetIdentity: rootIdentity(e.f) })(), true);
+  assert.equal(targetCheck({ targetRoot: e.f, targetIdentity: "another-drive" })(), false);
 });
 
 test("U8: a name on F: that appeared after the plan keeps its bytes and is refused; the same content counts as already there", async () => {
@@ -153,7 +214,10 @@ test("U8: a run killed part-way and run again ends where an unbroken run ends", 
     if (++n === 2) throw new Error("killed");
     return fakeCopy()(...a);
   };
-  await assert.rejects(run(e, { copy: dies }), /killed/u);
+  const broken = await run(e, { copy: dies });
+  assert.equal(broken.outcome, "failed");
+  assert.ok(broken.counts.copied >= 1, "a failed run still says what it placed");
+  assert.ok(!fs.existsSync(e.staging));
   const again = await run(e);
   assert.equal(again.outcome, "ok");
   const tree = (root) => snapshot(root).map(([p, s]) => [p, s]);
@@ -220,8 +284,8 @@ test("U8: every condition of a run is checked, and each refusal says which", () 
 
 // --- the hub --------------------------------------------------------------------------------------------
 
-async function hubU8({ freeBytes = 10 ** 12, machine = "T480", inline = true } = {}) {
-  const e = await estate();
+async function hubU8({ freeBytes = 10 ** 12, machine = "T480", inline = true, copy = fakeCopy(), extra = {} } = {}) {
+  const e = await estate(extra);
   const home = tmp();
   const store = tmp();
   const gov = path.join(tmp(), "governance.jsonl");
@@ -243,7 +307,7 @@ async function hubU8({ freeBytes = 10 ** 12, machine = "T480", inline = true } =
       governanceLog: gov,
       policyFile: path.join(tmp(), "storage-policy.json"),
       freeBytes,
-      ...(inline ? { copyWith: { cloudOnly: noCloud, copy: fakeCopy() } } : {})
+      ...(inline ? { copyWith: { cloudOnly: noCloud, copy } } : {})
     }
   });
   const server = http.createServer((req, res) => {
@@ -285,12 +349,13 @@ test("U8: an unsigned proposal writes nothing and says why; an agent's signature
   const h = await hubU8();
   try {
     const p = (await h.plan()).sources[0];
+    sign(h, p.proposal.id); // a human signature on a proposal never raised authorises nothing
     let r = await h.call("/library/copy", { source: p.id });
     assert.equal(r.status, 409);
     assert.match(r.json.error, /not raised/u);
     await h.call("/library/plan/raise", { source: p.id });
     r = await h.call("/library/copy", { source: p.id });
-    assert.match(r.json.error, /waiting for your signature/u);
+    assert.match(r.json.error, /waiting for your signature/u, "nor does one made before it was raised");
     const agent = { ...proposalSignedEvent({ proposalId: p.proposal.id, machine: "T480", signer: "an agent" }), authorship: "frontier", id: ulid(), schema_version: CURRENT_SCHEMA_VERSION };
     appendKelEvent(h.gov, agent);
     r = await h.call("/library/copy", { source: p.id });
@@ -317,6 +382,7 @@ test("U8: a signed proposal is copied; one run record carries counts and never a
     const last = await finished(h);
     assert.equal(last.outcome, "ok");
     assert.equal(last.counts.copied, p.copy.files);
+    assert.equal(last.counts.bytes, p.copy.bytes, "the bytes placed are counted");
     const events = readKelEvents(h.gov).events;
     const runs = events.filter((x) => x.type === "execution_recorded");
     assert.equal(runs.length, 1, "one run record");
@@ -332,8 +398,9 @@ test("U8: a signed proposal is copied; one run record carries counts and never a
   }
 });
 
-test("U8: the hub runs the copy in a worker, with robocopy and the folder probe; a second copy waits", { skip: !WIN }, async () => {
-  const h = await hubU8({ inline: false });
+test("U8: the hub runs the copy in a worker, with robocopy and the folder probe; a second copy waits; Stop stops it; the record is kept", { skip: !WIN }, async () => {
+  const extra = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`many/f${i}/file.txt`, `content ${i}`]));
+  const h = await hubU8({ inline: false, extra });
   try {
     const p = (await h.plan()).sources[0];
     await h.call("/library/plan/raise", { source: p.id });
@@ -341,11 +408,68 @@ test("U8: the hub runs the copy in a worker, with robocopy and the folder probe;
     assert.equal((await h.call("/library/copy", { source: p.id })).status, 202);
     const again = await h.call("/library/copy", { source: p.id });
     assert.ok(again.status === 409 && /already running/u.test(again.json.error), "one copy at a time");
-    const last = await finished(h);
+    assert.equal((await h.call("/library/copy/stop", {})).status, 202);
+    const stopped = await finished(h);
+    assert.equal(stopped.outcome, "stopped", JSON.stringify(stopped));
+    assert.ok(fs.existsSync(path.join(h.store, "library", "copies", `${stopped.run_id}.jsonl`)), "the worker keeps the per-file record");
+    assert.equal((await h.call("/library/copy", { source: p.id })).status, 202, "a re-run resumes");
+    let last;
+    for (let i = 0; i < 600; i++) {
+      last = (await h.call("/library/plan")).json.copy.last;
+      if (last.run_id !== stopped.run_id) break;
+      await wait(50);
+    }
     assert.equal(last.outcome, "ok", JSON.stringify(last));
-    assert.equal(last.counts.copied, p.copy.files);
+    assert.equal(last.counts.copied + last.counts.already, p.copy.files);
     assert.equal(fs.readFileSync(path.join(h.e.f, "consolidated", "Downloads", "c", "one.txt"), "utf8"), "one");
     assert.equal((await h.call("/library/copy/stop", {})).status, 409, "nothing left to stop");
+  } finally {
+    await h.close();
+  }
+});
+
+test("U8 round 2: a declined proposal stays declined, whatever is appended after it", async () => {
+  const h = await hubU8();
+  try {
+    const p = (await h.plan()).sources[0];
+    await h.call("/library/plan/raise", { source: p.id });
+    appendKelEvent(h.gov, proposalDeclinedEvent({ proposalId: p.proposal.id, machine: "T480", signer: "owner (test)", reason: "no" }));
+    sign(h, p.proposal.id);
+    const q = (await h.plan()).sources[0];
+    assert.equal(q.proposal.authorised, false);
+    const r = await h.call("/library/copy", { source: p.id });
+    assert.equal(r.status, 409);
+    assert.match(r.json.error, /declined/u);
+  } finally {
+    await h.close();
+  }
+});
+
+test("U8 round 2: F: is not catalogued while a copy writes to it; a failed run is recorded with what it did", async () => {
+  let release;
+  const gate = new Promise((r) => (release = r));
+  let n = 0;
+  const slowThenBroken = async (...a) => {
+    if (++n === 1) await gate;
+    if (n === 2) throw new Error("the disk went away");
+    return fakeCopy()(...a);
+  };
+  const h = await hubU8({ copy: slowThenBroken });
+  try {
+    const p = (await h.plan()).sources[0];
+    await h.call("/library/plan/raise", { source: p.id });
+    sign(h, p.proposal.id);
+    assert.equal((await h.call("/library/copy", { source: p.id })).status, 202);
+    const pass = await h.call("/library", { root: h.e.f });
+    assert.equal(pass.status, 400);
+    assert.match(pass.json.error, /being copied onto/u);
+    release();
+    const last = await finished(h);
+    assert.equal(last.outcome, "failed");
+    assert.ok(last.counts && last.counts.copied >= 1, "what was placed before the failure is said");
+    const runs = readKelEvents(h.gov).events.filter((x) => x.type === "execution_recorded");
+    assert.equal(runs.length, 1);
+    assert.equal(runs[0].payload.outcome, "failed");
   } finally {
     await h.close();
   }

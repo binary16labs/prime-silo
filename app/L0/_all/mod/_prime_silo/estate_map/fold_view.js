@@ -726,7 +726,9 @@ function copyLine(c) {
     k.refused ? `${n(k.refused)} refused (the name holds other content)` : "",
     k.changed ? `${n(k.changed)} changed since the plan (re-plan to copy them)` : "",
     k.cloud_only ? `${n(k.cloud_only)} only in the cloud` : "",
-    k.unreadable ? `${n(k.unreadable)} could not be read` : ""
+    k.unreadable ? `${n(k.unreadable)} could not be read` : "",
+    k.unsafe_name ? `${n(k.unsafe_name)} with a name robocopy would read as a switch (rename them)` : "",
+    k.repeats_unplaced ? `${n(k.repeats_unplaced)} repeats of a file not placed` : ""
   ].filter(Boolean);
   return `Last copy of ${l.source}: ${l.outcome}${l.why ? ` (${l.why})` : ""}. ${said.join(", ")}.`;
 }

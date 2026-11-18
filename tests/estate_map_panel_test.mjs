@@ -3375,7 +3375,8 @@ test("U8 (panel): Copy appears only on a proposal you signed; otherwise the reas
     sources: [
       src("library-dl", "Downloads", { id: "copy-library-dl-d", state: "signed", authorised: true }),
       src("library-od", "OneDrive", { id: "copy-library-od-e", state: "signed", authorised: false }),
-      src("library-pi", "Pictures", { id: "copy-library-pi-f", state: "open", authorised: false })
+      src("library-pi", "Pictures", { id: "copy-library-pi-f", state: "open", authorised: false }),
+      { ...src("library-g", "drive-1a2b3c4d", { id: "copy-library-g-g", state: "signed", authorised: true }), attached: false }
     ],
     copy: { running: null, last: { run_id: "copy-1", source: "Desktop", outcome: "ok", counts: { copied: 12, already: 2, changed: 1, cloud_only: 3, refused: 0, bytes: 1 } } }
   };
@@ -3394,5 +3395,6 @@ test("U8 (panel): Copy appears only on a proposal you signed; otherwise the reas
   await openTab(live.window, "library");
   assert.match(visible(live.window), /Copying Downloads: step 3 of 16 · 120 files, 2\.0 GB placed\./u);
   assert.equal([...live.window.document.querySelectorAll(".em__plan button")].length, 0, "no second Copy while one runs");
-  assert.ok([...live.window.document.querySelectorAll(".em__library button")].some((b) => b.textContent === "Stop"), "Stop is offered");
+  const stop = await pressing(live.window, ".em__library", /^Stop$/u, running);
+  assert.deepEqual(stop, [{ url: "/api/estate/library/copy/stop", body: {} }], "Stop stops the copy");
 });

@@ -17,20 +17,24 @@ export const WRITER = "t480"; // the signed plan: the T480 is the only node that
 export const HEADROOM = 10e9; // free space must cover the copy and 10 GB besides
 const FLAGS = Object.freeze(["/COPY:DAT", "/DCOPY:T", "/Z", "/R:1", "/W:1", "/NP", "/NJH", "/NJS", "/NFL", "/NDL"]);
 
-// The one place robocopy's arguments are made. A name is never a flag: robocopy would read "/MIR"
-// in a file name as the switch.
+// The one place robocopy's arguments are made. A NAME IS NEVER A SWITCH: robocopy reads "-MOV" as
+// well as "/MOV", so a file named "-MOV" moved a whole batch out of the source and lost a file
+// (claude-u8-verifier, round 1, B1). Such a name is never handed to robocopy; runCopy skips it.
+export const switchLike = (n) => /^[-/]/u.test(n) || /[*?]/u.test(n);
 export function robocopyArgs(from, to, names) {
-  if (names.some((n) => n.startsWith("/") || /[*?]/u.test(n)) || FLAGS.some((f) => /^\/(MOV|MOVE|MIR|PURGE)$/iu.test(f)))
+  if (names.some(switchLike) || FLAGS.some((f) => /^[-/](MOV|MOVE|MIR|PURGE)$/iu.test(f)))
     throw new Error("U8 never moves, mirrors or purges, and a file name is never a switch");
   return [from, to, ...names, ...FLAGS];
 }
 
+// robocopy's exit code is ANSWERED, not thrown: 0-7 is success, 8 and above means some file failed
+// (one locked file is exit 9). Which files made it is read from the staging folder, file by file, so
+// one locked file no longer fails the whole run (round 1, B2).
 export function robocopy(from, to, names, { spawn = spawnFile } = {}) {
   return new Promise((resolve, reject) => {
     const p = spawn("robocopy", robocopyArgs(from, to, names), { windowsHide: true });
     p.on("error", reject);
-    // robocopy: 0-7 is success (what was copied, skipped or extra); 8 and above is a failure
-    p.on("close", (code) => (code < 8 ? resolve(code) : reject(new Error(`robocopy failed (${code})`))));
+    p.on("close", (code) => resolve(code));
   });
 }
 
@@ -101,27 +105,41 @@ export async function runCopy({
   targetOk = () => true,
   size = 50
 }) {
-  const counts = { copied: 0, bytes: 0, already: 0, refused: 0, changed: 0, cloud_only: 0, unreadable: 0, pointers: 0 };
+  const counts = { copied: 0, bytes: 0, already: 0, refused: 0, changed: 0, cloud_only: 0, unreadable: 0, unsafe_name: 0, pointers: 0, repeats_unplaced: 0 };
   const note = (it, result, key) => {
     if (key) counts[key]++;
     record({ from: it.from, to: it.to, ...(it.same_as ? { same_as: it.same_as } : {}), result });
   };
-  // what is already in place, right or wrong, is judged before anything is staged (a re-run resumes)
-  const placed = async (it, final) => ((await hash(final)) === it.sha256 ? note(it, "already there", "already") : note(it, "refused: the name on F: holds other content", "refused"));
-  for (const it of items) if (it.same_as) note(it, "pointer", "pointers");
+  const there = new Set(); // planned paths (folded) that hold the planned content after this run
+  const at = (it) => path.join(targetRoot, ...it.to.split("/"));
+  // what is already in place, right or wrong, is judged before anything is staged (a re-run resumes);
+  // a folder at the planned name is that name holding other content, never a crash
+  const placed = async (it, final) => {
+    if (!fs.statSync(final).isDirectory() && (await hash(final)) === it.sha256) {
+      there.add(it.to.toLowerCase());
+      return note(it, "already there", "already");
+    }
+    return note(it, "refused: the name on F: holds other content", "refused");
+  };
   fs.rmSync(staging, { recursive: true, force: true }); // a killed run's leftovers: only ever ours
   const batches = batchesOf(items.filter((i) => i.to), size);
+  const end = (outcome, why) => {
+    // a repeat is a pointer only to a copy that is there (round 1 note: never to one that was skipped)
+    for (const it of items.filter((i) => i.same_as))
+      there.has(it.same_as.toLowerCase()) ? note(it, "pointer", "pointers") : note(it, "skipped: its first copy was not placed", "repeats_unplaced");
+    return { counts, outcome, ...(why ? { why } : {}) };
+  };
   try {
     for (let step = 0; step < batches.length; step++) {
       progress({ step: step + 1, steps: batches.length, counts: { ...counts } });
-      if (stopped()) return { counts, outcome: "stopped" };
-      if (!targetOk()) return { counts, outcome: "stopped", why: "the drive at the target is not the one the plan was made for" };
+      if (stopped()) return end("stopped");
+      if (!targetOk()) return end("stopped", "the drive at the target is not the one the plan was made for");
       const [dir, group] = batches[step];
       const from = path.join(sourceRoot, ...dir.split("/").filter((d) => d !== "."));
       const todo = [];
       for (const it of group) {
-        const final = path.join(targetRoot, ...it.to.split("/"));
-        if (fs.existsSync(final)) await placed(it, final);
+        if (fs.existsSync(at(it))) await placed(it, at(it));
+        else if (switchLike(path.posix.basename(it.from))) note(it, "skipped: robocopy would read its name as a switch (rename it)", "unsafe_name");
         else todo.push(it);
       }
       if (!todo.length) continue;
@@ -136,22 +154,23 @@ export async function runCopy({
       if (!go.length) continue;
       const stage = path.join(staging, String(step + 1));
       fs.mkdirSync(stage, { recursive: true });
-      await copy(from, stage, go.map((it) => path.posix.basename(it.from)));
+      const failed = (await copy(from, stage, go.map((it) => path.posix.basename(it.from)))) >= 8;
       for (const it of go) {
         const staged = path.join(stage, path.posix.basename(it.from));
-        const final = path.join(targetRoot, ...it.to.split("/"));
         try {
-          if (!fs.existsSync(staged)) note(it, "skipped: could not be read", "unreadable");
-          else if ((await hash(staged)) !== it.sha256) note(it, "skipped: changed since the plan", "changed");
+          if (!fs.existsSync(staged)) note(it, "skipped: could not be read (in use or locked?)", "unreadable");
+          else if ((await hash(staged)) !== it.sha256)
+            failed ? note(it, "skipped: could not be copied whole", "unreadable") : note(it, "skipped: changed since the plan", "changed");
           else {
-            fs.mkdirSync(path.dirname(final), { recursive: true });
+            fs.mkdirSync(path.dirname(at(it)), { recursive: true });
             try {
-              fs.linkSync(staged, final); // fails on an existing name: never an overwrite
+              fs.linkSync(staged, at(it)); // fails on an existing name: never an overwrite
               counts.bytes += it.size;
+              there.add(it.to.toLowerCase());
               note(it, "copied", "copied");
             } catch (e) {
               if (e.code !== "EEXIST") throw e;
-              await placed(it, final);
+              await placed(it, at(it));
             }
           }
         } finally {
@@ -160,7 +179,10 @@ export async function runCopy({
       }
       fs.rmSync(stage, { recursive: true, force: true });
     }
-    return { counts, outcome: "ok" };
+    return end("ok");
+  } catch (e) {
+    // an unexpected failure still says what was done before it (round 1, B2: counts were null)
+    return end("failed", String(e?.message || e));
   } finally {
     fs.rmSync(staging, { recursive: true, force: true });
   }
@@ -186,7 +208,7 @@ const recorder = (file) => {
   return (line) => fs.appendFileSync(file, `${JSON.stringify(line)}\n`);
 };
 // the drive at the target letter is checked again before every batch: a swapped drive stops the run
-const targetCheck = (job) => () => !job.targetIdentity || rootIdentity(job.targetRoot) === job.targetIdentity;
+export const targetCheck = (job) => () => !job.targetIdentity || rootIdentity(job.targetRoot) === job.targetIdentity;
 
 if (!isMainThread && workerData?.u8) {
   const job = workerData.u8;
