@@ -48,7 +48,9 @@ const RECEIPTS = path.join(STATE, "receipts.jsonl");
 const QUEUE = path.join(STATE, "pending-backup.jsonl");
 // The hub keeps the live backup on its fixed F: drive; satellites push to its inbox share.
 const HUB_LOCAL = process.env.ESTATE_BACKUP_ROOT || "F:\\backups";
-const HUB_SHARE = process.env.ESTATE_BACKUP_SHARE || "\\\\192.168.68.125\\backups-inbox";
+// Over Tailscale: the T480's LAN profile is Public (inbound SMB blocked), its Tailscale
+// interface is Private. The old WiFi address 192.168.68.125 is gone (2026-11-21).
+const HUB_SHARE = process.env.ESTATE_BACKUP_SHARE || "\\\\100.99.229.31\\backups-inbox";
 
 // Where each agent keeps its transcripts. A missing root is skipped.
 export function transcriptRoots(home = HOME) {
