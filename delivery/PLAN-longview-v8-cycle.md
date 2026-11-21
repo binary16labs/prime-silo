@@ -1,6 +1,8 @@
 # PLAN — LONGVIEW V8: the queued, self-improving cycle
 
-**Status:** DRAFT for the owner's signature · 2026-11-21 · author: Claude (t480)
+**Status:** ✅ SIGNED by the owner 2026-11-21 ("Approved", chat; transcribed by Claude — board scope, not a KEL signature) · author: Claude (t480)
+**Signed choices (§10):** trigger = weekly or ≥ 25 new sessions, whichever first · manual "go" for the first 2 cycles, then automatic (the standing scheduled trigger is still its own G3 at Y6) · first challenger = SAD V8 · the 10 items in §8 are C1's starting ledger.
+**Order (owner):** queued to start after the C0 run completes — see `home_code/DUAL-BRAIN-SYNC.md` §1 queue Q1–Q7.
 **Epic:** EP-Y (cYcle) · **Milestone:** M14 (to be written) · **Objective:** O1 + O2
 **Builds on (reuse, do not rebuild):** the LONGVIEW pipeline (`scripts/longview/pipeline.mjs`), edition
 manifests + `LATEST.json` (`lib/edition.mjs`, 78347cce), session close-out + satellite merge + provenance
