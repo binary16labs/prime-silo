@@ -34,18 +34,38 @@ function renderStep(e) {
   return `[${label}${tag}]${body ? " " + body : ""}`;
 }
 
-export function walkSessionWindows(session, { inputChars = DEFAULT_INPUT_CHARS } = {}) {
-  const timeline = readTimeline(session.id);
+// readTimeline's default cap (5,000 nodes) silently cut long sessions: one ran to
+// 14,096 steps and only its first third was ever walked. Walk the whole session.
+export const WALK_MAX_NODES = 1_000_000;
+
+export function walkSessionWindows(
+  session,
+  { inputChars = DEFAULT_INPUT_CHARS, maxNodes = WALK_MAX_NODES, timeline = null } = {}
+) {
+  const tl = timeline || readTimeline(session.id, maxNodes);
   // Drop the root Session node (it carries only the title); keep every step.
-  const steps = timeline.filter((e) => e.id !== session.id);
+  const steps = tl.filter((e) => e.id !== session.id);
 
   const windows = [];
   let text = "";
   let stepIdxs = [];
+  let lastTs = 0;
 
   const push = () => {
     if (!text) return;
-    windows.push({ index: windows.length, steps: stepIdxs.slice(), text });
+    // firstTs = the first timestamped step in the window (carried forward when a
+    // window has none), so each window can be placed in exactly one episode.
+    let firstTs = 0;
+    for (const i of stepIdxs) {
+      const t = Number(steps[i]?.timestamp) || 0;
+      if (t) {
+        firstTs = t;
+        break;
+      }
+    }
+    if (!firstTs) firstTs = lastTs;
+    lastTs = firstTs || lastTs;
+    windows.push({ index: windows.length, steps: stepIdxs.slice(), text, firstTs });
     text = "";
     stepIdxs = [];
   };

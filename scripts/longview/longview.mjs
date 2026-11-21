@@ -38,7 +38,8 @@ import {
   subprocessEnv
 } from "./lib/config.mjs";
 import { taskStalled, reconcileIngested, isStallVerdict } from "./lib/ingest_state.mjs";
-import { syncStore, listSessions } from "./lib/store.mjs";
+import { syncStore, listSessions, readTimeline } from "./lib/store.mjs";
+import { planEpisodes, episodeId, episodeSig, inEpisode } from "./lib/episodes.mjs";
 import { buildEvidencePack } from "./lib/evidence.mjs";
 import { walkSessionWindows } from "./lib/walk.mjs";
 import { chat, lastBalancedJson, repairTruncatedJson } from "./lib/llm.mjs";
@@ -133,20 +134,100 @@ async function runInventory() {
     .split(",")
     .filter(Boolean);
   const sessions = listSessions({ agents });
-  const inventory = sessions.map((s) => ({
-    id: s.id,
-    agent: s.agent,
-    title: (s.content || "").slice(0, 120),
-    project: s.metadata?.project || null,
-    timestamp: s.timestamp || 0,
-    events: (s.children_ids || []).length
-  }));
+  const q = quarantinedSids();
+  const inventory = [];
+  let split = 0;
+  for (const s of sessions) {
+    const base = {
+      id: s.id,
+      agent: s.agent,
+      title: (s.content || "").slice(0, 120),
+      project: s.metadata?.project || null,
+      timestamp: s.timestamp || 0,
+      events: (s.children_ids || []).length
+    };
+    // Long sessions become episodes (lib/episodes.mjs). Quarantined sessions are
+    // never expanded, so their content cannot re-enter under new ids.
+    const tl = flag("no-episodes") || q.has(s.id) ? [] : readTimeline(s.id, 1_000_000);
+    const eps = planEpisodes(tl);
+    if (!eps.length) {
+      inventory.push(base);
+      continue;
+    }
+    split++;
+    for (const ep of eps) {
+      let first = 0;
+      for (const e of tl)
+        if (e.timestamp && inEpisode(e.timestamp, ep) && (!first || e.timestamp < first))
+          first = e.timestamp;
+      inventory.push({
+        ...base,
+        id: episodeId(s.id, ep.first_day),
+        title: `${base.title.slice(0, 90)} — episode ${ep.index + 1}/${eps.length} (${ep.first_day}${ep.last_day !== ep.first_day ? ` to ${ep.last_day}` : ""})`,
+        // The episode's REAL start, not the transcript's last-write time.
+        timestamp: first || base.timestamp,
+        parent: s.id,
+        episode: {
+          index: ep.index,
+          of: eps.length,
+          first_day: ep.first_day,
+          last_day: ep.last_day,
+          from: ep.from,
+          to: Number.isFinite(ep.to) ? ep.to : null,
+          inputs: ep.inputs,
+          sig: episodeSig(ep, tl)
+        }
+      });
+    }
+  }
   fs.writeFileSync(inventoryPath(), JSON.stringify(inventory, null, 2));
+  const moved = supersedeCards(inventory);
   const byAgent = {};
   for (const s of inventory) byAgent[s.agent] = (byAgent[s.agent] || 0) + 1;
   writeStatus({ phase: "inventory", backlog_total: inventory.length, by_agent: byAgent });
-  console.log(`[inventory] ${inventory.length} sessions`, byAgent);
+  console.log(
+    `[inventory] ${inventory.length} items`,
+    byAgent,
+    split ? `(${split} long session(s) split into episodes; ${moved} superseded card(s) set aside)` : ""
+  );
   return inventory;
+}
+
+// A split session's whole-session card, and any episode card whose episode no
+// longer exists, would otherwise keep feeding every phase that reads cards/ (arcs,
+// graph, privacy, opus coverage). Move them, never delete: longview/superseded/
+// plus a journal line each, so the move is reversible.
+function supersedeCards(inventory) {
+  const live = new Set(inventory.map((i) => i.id));
+  const parents = new Set(inventory.filter((i) => i.parent).map((i) => i.parent));
+  const dir = stateDir("cards");
+  if (!fs.existsSync(dir)) return 0;
+  const out = stateDir("superseded");
+  let moved = 0;
+  for (const f of fs.readdirSync(dir)) {
+    if (!f.endsWith(".json") || f.endsWith(".meta.json")) continue;
+    const id = f.replace(/\.json$/, "");
+    if (live.has(id)) continue;
+    let meta = {};
+    try {
+      meta = JSON.parse(fs.readFileSync(path.join(dir, `${id}.meta.json`), "utf8"));
+    } catch {
+      /* no meta */
+    }
+    const why = parents.has(id) ? "split_into_episodes" : meta.parent ? "episode_replaced" : null;
+    if (!why) continue;
+    fs.mkdirSync(out, { recursive: true });
+    for (const name of [`${id}.json`, `${id}.meta.json`]) {
+      const from = path.join(dir, name);
+      if (fs.existsSync(from)) fs.renameSync(from, path.join(out, name));
+    }
+    fs.appendFileSync(
+      path.join(out, "journal.jsonl"),
+      JSON.stringify({ ts: new Date().toISOString(), id, why, parent: meta.parent || id }) + "\n"
+    );
+    moved++;
+  }
+  return moved;
 }
 
 // Quarantine (memory.mjs teleport): sids moved to a private workspace are
@@ -163,7 +244,7 @@ const loadInventory = () => {
   const inv = JSON.parse(fs.readFileSync(inventoryPath(), "utf8"));
   const q = quarantinedSids();
   if (!q.size) return inv;
-  const kept = inv.filter((s) => !q.has(s.id));
+  const kept = inv.filter((s) => !q.has(s.id) && !(s.parent && q.has(s.parent)));
   if (kept.length !== inv.length)
     console.log(
       `[inventory] ${inv.length - kept.length} quarantined session(s) excluded (longview/quarantine.json)`
@@ -178,15 +259,44 @@ function runExtract() {
   const sessionById = new Map(listSessions().map((s) => [s.id, s]));
   let done = 0,
     skipped = 0;
+  const parentTl = new Map(); // parent sid → full timeline (episodes share it)
   for (const item of inventory) {
     if (done >= limit || interrupted) break;
     if (fs.existsSync(evidencePath(item.id)) && !flag("force")) {
-      skipped++;
-      continue;
+      // An episode whose content moved on (its sig changed) gets a fresh pack.
+      let stale = false;
+      if (item.episode) {
+        try {
+          stale =
+            JSON.parse(fs.readFileSync(evidenceMetaPath(item.id), "utf8")).episode_sig !==
+            item.episode.sig;
+        } catch {
+          stale = true;
+        }
+      }
+      if (!stale) {
+        skipped++;
+        continue;
+      }
     }
-    const session = sessionById.get(item.id);
-    if (!session) continue;
-    const ev = buildEvidencePack(session);
+    let ev;
+    if (item.episode) {
+      const parent = sessionById.get(item.parent);
+      if (!parent) continue;
+      if (!parentTl.has(item.parent)) parentTl.set(item.parent, readTimeline(item.parent, 1_000_000));
+      const ep = { from: item.episode.from, to: item.episode.to ?? Infinity };
+      const slice = parentTl
+        .get(item.parent)
+        .filter((e) => e.id !== item.parent && inEpisode(e.timestamp, ep));
+      ev = buildEvidencePack(
+        { ...parent, id: item.id, content: item.title, timestamp: item.timestamp },
+        { timeline: slice }
+      );
+    } else {
+      const session = sessionById.get(item.id);
+      if (!session) continue;
+      ev = buildEvidencePack(session);
+    }
     fs.writeFileSync(evidencePath(item.id), ev.pack);
     fs.writeFileSync(
       evidenceMetaPath(item.id),
@@ -196,7 +306,8 @@ function runExtract() {
           artifact_names: ev.artifactNames,
           project: ev.project,
           first_ts: ev.firstTs,
-          last_ts: ev.lastTs
+          last_ts: ev.lastTs,
+          ...(item.episode ? { parent: item.parent, episode_sig: item.episode.sig } : {})
         },
         null,
         2
@@ -216,6 +327,52 @@ function runExtract() {
 // not be mixed with the new layout.
 const windowFragPath = (id, n) =>
   stateDir("windows", id, `w${config.WINDOW_INPUT_CHARS}_${n}.json`);
+// Windows for one inventory item. A plain session walks itself. An episode walks
+// its PARENT (whole timeline, cached for its sibling episodes) and keeps the
+// windows that start inside its range. Fragments already extracted for the
+// parent (windows/<parent>/w<N>_<i>.json) are reused only when the old parent
+// manifest proves window i covers the same steps and length; anything else gets
+// a content-addressed cache file, so a fragment can never be credited to text
+// it was not extracted from.
+let parentWalk = { id: null, windows: null, stepCount: 0 };
+function episodeWindows(item) {
+  const inputChars = config.WINDOW_INPUT_CHARS;
+  if (!item.episode) return walkSessionWindows(item, { inputChars });
+  if (parentWalk.id !== item.parent) {
+    const { windows, stepCount } = walkSessionWindows({ id: item.parent }, { inputChars });
+    let old = null;
+    try {
+      old = JSON.parse(fs.readFileSync(stateDir("windows", item.parent, "manifest.json"), "utf8"));
+    } catch {
+      /* never mapped whole */
+    }
+    const oldBy = new Map(
+      old && old.window_chars === inputChars ? old.windows.map((w) => [w.index, w]) : []
+    );
+    for (const w of windows) {
+      const o = oldBy.get(w.index);
+      const same =
+        o &&
+        o.chars === w.text.length &&
+        o.steps[0] === (w.steps[0] ?? 0) &&
+        o.steps[1] === (w.steps[w.steps.length - 1] ?? 0);
+      const legacy = windowFragPath(item.parent, w.index);
+      w.fragPath =
+        same && fs.existsSync(legacy)
+          ? legacy
+          : stateDir(
+              "windows",
+              item.parent,
+              `w${inputChars}_h${crypto.createHash("sha1").update(w.text).digest("hex").slice(0, 16)}.json`
+            );
+    }
+    parentWalk = { id: item.parent, windows, stepCount };
+  }
+  const ep = { from: item.episode.from, to: item.episode.to ?? Infinity };
+  const mine = parentWalk.windows.filter((w) => inEpisode(w.firstTs, ep));
+  return { windows: mine, stepCount: mine.reduce((n, w) => n + w.steps.length, 0) };
+}
+
 const FRAG_LISTS = [
   "decisions",
   "outcomes",
@@ -355,6 +512,17 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
     if (flag("force")) return true;
     if (!v) return true;
     if (v.status === "ok" && fs.existsSync(cardPath(item.id))) {
+      // An episode whose content moved on is re-assembled (cached windows make
+      // this cheap: only its new windows reach the model).
+      if (item.episode) {
+        try {
+          const m = JSON.parse(fs.readFileSync(stateDir("cards", `${item.id}.meta.json`), "utf8"));
+          if (m.episode_sig !== item.episode.sig) return true;
+        } catch {
+          return true;
+        }
+        return false;
+      }
       // Delta: a session that gained activity after its card was made is stale.
       return deltaMode && item.timestamp > Date.parse(v.ts || 0);
     }
@@ -403,9 +571,7 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
       // per window (cached under windows/<sid>/<n>.json — resume-safe, so a restart
       // never re-runs completed windows even for 1000+ step sessions), then assemble
       // the card losslessly in code so the model never emits a large (truncating) object.
-      const { windows, stepCount } = walkSessionWindows(item, {
-        inputChars: config.WINDOW_INPUT_CHARS
-      });
+      const { windows, stepCount } = episodeWindows(item);
       // Benny Record provenance: which timeline steps each window covered.
       fs.mkdirSync(stateDir("windows", item.id), { recursive: true });
       fs.writeFileSync(
@@ -425,7 +591,7 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
       const fragments = [];
       for (const w of windows) {
         if (interrupted || wedged) break;
-        const fp = windowFragPath(item.id, w.index);
+        const fp = w.fragPath || windowFragPath(item.id, w.index);
         if (fs.existsSync(fp)) {
           fragments.push(JSON.parse(fs.readFileSync(fp, "utf8")));
           continue;
@@ -484,7 +650,10 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
           tokens,
           ms,
           model: config.LONGVIEW_MODEL,
-          ts: new Date().toISOString()
+          ts: new Date().toISOString(),
+          ...(item.episode
+            ? { parent: item.parent, episode: item.episode, episode_sig: item.episode.sig }
+            : {})
         })
       );
       appendLedger({

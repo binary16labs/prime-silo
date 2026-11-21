@@ -12,8 +12,18 @@ const clip = (s, n) => {
   return s.length > n ? s.slice(0, n) + " …[clipped]" : s;
 };
 
-export function buildEvidencePack(session) {
-  const timeline = readTimeline(session.id);
+// Evenly spaced picks, so a long session (or episode) is represented across its
+// whole span, not only by its first N inputs.
+const spread = (arr, n) => {
+  if (arr.length <= n) return arr;
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(arr[Math.round((i * (arr.length - 1)) / (n - 1))]);
+  return out;
+};
+
+// opts.timeline: a pre-sliced timeline (an episode of a longer session).
+export function buildEvidencePack(session, { timeline: given = null } = {}) {
+  const timeline = given || readTimeline(session.id, 1_000_000);
   const artifacts = [];
   const userInputs = [];
   const thoughts = [];
@@ -95,13 +105,13 @@ export function buildEvidencePack(session) {
   if (uniqueArtifacts.length) {
     push(`\n## Agent artifacts (distilled by the agent during the session)`);
     const per = Math.max(700, Math.floor((budget * 0.55) / uniqueArtifacts.length));
-    for (const a of uniqueArtifacts.slice(0, 6)) push(`\n### ${a.name}\n${clip(a.content, per)}`);
+    for (const a of spread(uniqueArtifacts, 6)) push(`\n### ${a.name}\n${clip(a.content, per)}`);
   }
 
   if (userInputs.length) {
     push(`\n## Operator inputs (${userInputs.length} total)`);
     const per = Math.max(300, Math.floor((budget * 0.7) / Math.min(userInputs.length, 12)));
-    for (const u of userInputs.slice(0, 12)) push(`\n> ${clip(u, per)}`);
+    for (const u of spread(userInputs, 12)) push(`\n> ${clip(u, per)}`);
   }
 
   if (toolCounts.size || filesTouched.size) {
