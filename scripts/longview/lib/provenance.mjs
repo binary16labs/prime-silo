@@ -74,6 +74,24 @@ export function hostOf(entity, prov, { localHost, localExists = () => false } = 
   return "unknown";
 }
 
+/**
+ * When a session really started: its earliest dated EVENT, not the store's session time.
+ * The store's time came from a transcript's file date for older imports, and a backup copy
+ * re-dated 103 Antigravity sessions to 2026-05-23 (72 really began in April 2026). Falls
+ * back to the store time, labelled, when no event carries a date.
+ */
+export function sessionStart(entity, timeline = []) {
+  let min = Infinity;
+  for (const e of timeline) {
+    if (!e || e.id === entity?.id) continue; // the root carries the store's (file) time
+    const t = Number(e.timestamp);
+    if (Number.isFinite(t) && t > 0 && t < min) min = t;
+  }
+  return Number.isFinite(min)
+    ? { ts: min, source: "first_event" }
+    : { ts: entity?.timestamp || 0, source: "store" };
+}
+
 /** Short content hash of a prompts folder: changes whenever any prompt changes. */
 export function promptVersion(dir) {
   const h = crypto.createHash("sha1");

@@ -40,7 +40,13 @@ import {
 import { taskStalled, reconcileIngested, isStallVerdict } from "./lib/ingest_state.mjs";
 import { syncStore, listSessions, readTimeline } from "./lib/store.mjs";
 import { planEpisodes, episodeId, episodeSig, inEpisode } from "./lib/episodes.mjs";
-import { dedupeSessions, hostOf, loadProvenance, promptVersion } from "./lib/provenance.mjs";
+import {
+  dedupeSessions,
+  hostOf,
+  loadProvenance,
+  promptVersion,
+  sessionStart
+} from "./lib/provenance.mjs";
 import os from "os";
 import { buildEvidencePack } from "./lib/evidence.mjs";
 import { walkSessionWindows } from "./lib/walk.mjs";
@@ -160,7 +166,15 @@ async function runInventory() {
     };
     // Long sessions become episodes (lib/episodes.mjs). Quarantined sessions are
     // never expanded, so their content cannot re-enter under new ids.
-    const tl = flag("no-episodes") || q.has(s.id) ? [] : readTimeline(s.id, 1_000_000);
+    const tl = q.has(s.id) ? [] : readTimeline(s.id, 1_000_000);
+    // Real start = earliest dated event (a backup copy re-dated 103 sessions to 05-23).
+    const start = sessionStart(s, tl);
+    base.timestamp = start.ts;
+    base.timestamp_source = start.source;
+    if (flag("no-episodes")) {
+      inventory.push(base);
+      continue;
+    }
     const eps = planEpisodes(tl);
     if (!eps.length) {
       inventory.push(base);

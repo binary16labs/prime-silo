@@ -10,7 +10,8 @@ import {
   sessionKey,
   dedupeSessions,
   hostOf,
-  promptVersion
+  promptVersion,
+  sessionStart
 } from "../scripts/longview/lib/provenance.mjs";
 import { buildEditionManifest } from "../scripts/longview/lib/edition.mjs";
 import { snapshotHost, pickCopies } from "../scripts/estate_satellite_merge.mjs";
@@ -93,6 +94,16 @@ assert.equal(
   assert.equal(hostOf(claude("a", `C:\\x\\${U2}.jsonl`), prov, { localHost: "t480", localExists: () => true }), "optimus");
   assert.equal(hostOf(claude("b", `C:\\x\\${U1}.jsonl`), prov, { localHost: "t480", localExists: () => true }), "t480");
   assert.equal(hostOf(claude("c", `C:\\x\\${U1}.jsonl`), prov, { localHost: "t480", localExists: () => false }), "unknown");
+}
+
+// 6b. A session starts at its earliest dated event, not the store's (file) time.
+{
+  const april = Date.parse("2026-04-14T09:00:00Z");
+  const may23 = Date.parse("2026-05-23T12:00:00Z");
+  const s = { id: "root", timestamp: may23 };
+  const tl = [s, { id: "a", timestamp: april + 5000 }, { id: "b", timestamp: april }, { id: "c" }];
+  assert.deepEqual(sessionStart(s, tl), { ts: april, source: "first_event" });
+  assert.deepEqual(sessionStart(s, [s, { id: "c" }]), { ts: may23, source: "store" });
 }
 
 // 7. Prompt version changes with any prompt, and ignores line endings.

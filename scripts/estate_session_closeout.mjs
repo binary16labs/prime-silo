@@ -180,9 +180,16 @@ async function closeOne({ agent, transcript, mtime, size }, { synced }) {
       r.captured = /[\\/]subagents[\\/]/.test(transcript) ? "parent" : false;
       if (r.captured === false) r.notes.push("memo-ray has no session for this transcript");
     } else {
-      const last = Number(e.metadata?.lastModifiedAt) || 0;
+      // lastModifiedAt is written by the current claudeParser. An older memo-ray (optimus,
+      // 2026-11-21: 12 false "older" receipts) doesn't write it, but there the session's
+      // own timestamp IS the transcript mtime at parse time — usable as the fallback.
+      // Never use timestamp when timestampSource is set: then it is the FIRST event time.
+      const lm = Number(e.metadata?.lastModifiedAt) || 0;
+      const fallback = !lm && !e.metadata?.timestampSource ? Number(e.timestamp) || 0 : 0;
+      const last = lm || fallback;
       r.captured = last + 1000 >= st.mtimeMs;
       r.memoray_last = last;
+      if (fallback) r.memoray_last_from = "session_timestamp (older memo-ray)";
       if (!r.captured) r.notes.push("memo-ray copy is older than the transcript");
     }
   } else {
