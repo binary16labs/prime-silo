@@ -8,7 +8,11 @@
  *   1. LONGVIEW synthesis on the PROVEN agent  (inventory→extract→map→model→graph)
  *   2. update the code graph                    (code   — Tree-Sitter → CODE_REL)
  *   3. update the correlation                   (enrich — merge → CORRELATES_WITH → themes)
- *   4. run the latest SAD                       (sad    — canonical TOGAF EPIC v3)
+ *   4. run the latest SAD                       (sad    — canonical TOGAF EPIC v7)
+ *
+ * When sad/pdf succeed, the run writes <edition>/MANIFEST.json (method, edition, code,
+ * model, prompts, inputs by machine × agent, file hashes) and data_out/LATEST.json —
+ * see lib/edition.mjs. Name the edition with LONGVIEW_OPUS_DIR=iterations/<date>-<machines>.
  *   5. the AI Vampire book                      (reduce → opus → pdf)
  *
  * Every phase already exists as a first-class `longview` subcommand and is
@@ -60,6 +64,8 @@ import path from "path";
 import readline from "readline";
 import { fileURLToPath } from "url";
 import { config, projectRoot, stateDir, workspaceDir, ensureWorkspace } from "./lib/config.mjs";
+import { writeEdition } from "./lib/edition.mjs";
+import { promptVersion } from "./lib/provenance.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const runner = path.join(__dirname, "longview.mjs");
@@ -592,6 +598,32 @@ async function main() {
 
   record.finishedAt = new Date().toISOString();
   record.outcome = failed ? `failed at ${failed}` : "ok";
+
+  // Edition manifest + data_out/LATEST.json for whatever this run produced (lib/edition.mjs).
+  // A deliverable counts only if its own phase succeeded in THIS run.
+  const okIds = new Set(record.phases.filter((p) => p.ok).map((p) => p.id));
+  const produced = [okIds.has("sad") && "sad", okIds.has("pdf") && "book"].filter(Boolean);
+  if (produced.length) {
+    try {
+      const inv = JSON.parse(fs.readFileSync(stateDir("inventory.json"), "utf8"));
+      const { editionDir } = writeEdition({
+        dataOut: workspaceDir("data_out"),
+        opusDir: config.OPUS_DIR,
+        produced,
+        inventory: inv,
+        cardsDir: stateDir("cards"),
+        generated: record.finishedAt,
+        release,
+        agent,
+        promptVersion: promptVersion(path.join(__dirname, "prompts"))
+      });
+      record.edition = { dir: editionDir, produced };
+      console.log(`  edition      : ${editionDir} (MANIFEST.json · LATEST.json updated)`);
+    } catch (e) {
+      record.edition = { error: e.message };
+      console.error(`  edition      : ⚠ manifest not written — ${e.message}`);
+    }
+  }
   record.deliverables = {
     data_out: workspaceDir("data_out"),
     sad_pdf: workspaceDir("data_out", "TOGAF_EPIC_V7_SAD_binary16.pdf"),

@@ -40,6 +40,8 @@ import {
 import { taskStalled, reconcileIngested, isStallVerdict } from "./lib/ingest_state.mjs";
 import { syncStore, listSessions, readTimeline } from "./lib/store.mjs";
 import { planEpisodes, episodeId, episodeSig, inEpisode } from "./lib/episodes.mjs";
+import { dedupeSessions, hostOf, loadProvenance, promptVersion } from "./lib/provenance.mjs";
+import os from "os";
 import { buildEvidencePack } from "./lib/evidence.mjs";
 import { walkSessionWindows } from "./lib/walk.mjs";
 import { chat, lastBalancedJson, repairTruncatedJson } from "./lib/llm.mjs";
@@ -50,6 +52,8 @@ import { appendLedger, readLedger, mapVerdicts, writeStatus, readStatus } from "
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const prompt = (name) => fs.readFileSync(path.join(__dirname, "prompts", `${name}.md`), "utf8");
+// Recorded on every card so a later audit can tell "better model" from "different prompts".
+const PROMPT_VERSION = promptVersion(path.join(__dirname, "prompts"));
 
 const args = process.argv.slice(2);
 const command = args[0] || "status";
@@ -133,14 +137,20 @@ async function runInventory() {
     .toLowerCase()
     .split(",")
     .filter(Boolean);
-  const sessions = listSessions({ agents });
   const q = quarantinedSids();
+  // One entity per real session: the same session can arrive as two copies (an old
+  // satellite pull + the hub's merged satellite folder). Dropped copies' cards are
+  // set aside below, never deleted.
+  const { keep: sessions, dropped } = dedupeSessions(listSessions({ agents }), q);
+  const prov = loadProvenance();
+  const localHost = (process.env.ESTATE_HOST || os.hostname()).toLowerCase();
   const inventory = [];
   let split = 0;
   for (const s of sessions) {
     const base = {
       id: s.id,
       agent: s.agent,
+      host: hostOf(s, prov, { localHost, localExists: (p) => fs.existsSync(p) }),
       title: (s.content || "").slice(0, 120),
       project: s.metadata?.project || null,
       timestamp: s.timestamp || 0,
@@ -181,14 +191,30 @@ async function runInventory() {
     }
   }
   fs.writeFileSync(inventoryPath(), JSON.stringify(inventory, null, 2));
-  const moved = supersedeCards(inventory);
+  const moved = supersedeCards(inventory, new Map(dropped.map((d) => [d.id, d.reason])));
   const byAgent = {};
-  for (const s of inventory) byAgent[s.agent] = (byAgent[s.agent] || 0) + 1;
-  writeStatus({ phase: "inventory", backlog_total: inventory.length, by_agent: byAgent });
+  const byHost = {};
+  for (const s of inventory) {
+    byAgent[s.agent] = (byAgent[s.agent] || 0) + 1;
+    byHost[`${s.host}/${s.agent}`] = (byHost[`${s.host}/${s.agent}`] || 0) + 1;
+  }
+  writeStatus({
+    phase: "inventory",
+    backlog_total: inventory.length,
+    by_agent: byAgent,
+    by_host: byHost,
+    duplicates_dropped: dropped.length,
+    provenance_map: prov.missing ? "missing" : "loaded"
+  });
   console.log(
     `[inventory] ${inventory.length} items`,
     byAgent,
     split ? `(${split} long session(s) split into episodes; ${moved} superseded card(s) set aside)` : ""
+  );
+  console.log(
+    `[inventory] by machine/agent`,
+    byHost,
+    `· ${dropped.length} duplicate copies merged${prov.missing ? " · ⚠ provenance map missing (backup drive not attached?)" : ""}`
   );
   return inventory;
 }
@@ -197,7 +223,7 @@ async function runInventory() {
 // longer exists, would otherwise keep feeding every phase that reads cards/ (arcs,
 // graph, privacy, opus coverage). Move them, never delete: longview/superseded/
 // plus a journal line each, so the move is reversible.
-function supersedeCards(inventory) {
+function supersedeCards(inventory, droppedCopies = new Map()) {
   const live = new Set(inventory.map((i) => i.id));
   const parents = new Set(inventory.filter((i) => i.parent).map((i) => i.parent));
   const dir = stateDir("cards");
@@ -214,7 +240,11 @@ function supersedeCards(inventory) {
     } catch {
       /* no meta */
     }
-    const why = parents.has(id) ? "split_into_episodes" : meta.parent ? "episode_replaced" : null;
+    const why = parents.has(id)
+      ? "split_into_episodes"
+      : meta.parent
+        ? "episode_replaced"
+        : droppedCopies.get(id) || null;
     if (!why) continue;
     fs.mkdirSync(out, { recursive: true });
     for (const name of [`${id}.json`, `${id}.meta.json`]) {
@@ -650,6 +680,9 @@ async function runMap({ deltaMode = false, limitOverride = null } = {}) {
           tokens,
           ms,
           model: config.LONGVIEW_MODEL,
+          prompt_version: PROMPT_VERSION,
+          host: item.host || null,
+          agent: item.agent || null,
           ts: new Date().toISOString(),
           ...(item.episode
             ? { parent: item.parent, episode: item.episode, episode_sig: item.episode.sig }

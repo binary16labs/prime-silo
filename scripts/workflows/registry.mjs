@@ -116,6 +116,19 @@ function fileVersion(file, { version, label }) {
 }
 
 const byRecency = (a, b) => String(b.generated).localeCompare(String(a.generated));
+
+// An edition folder's MANIFEST.json (written by the LONGVIEW pipeline) names the METHOD
+// (generator) and the EDITION (the run) separately, and carries the true generation time.
+function applyEditionManifest(v, folder, kind, fallback) {
+  const man = readJson(path.join(folder, "MANIFEST.json"));
+  if (!man?.edition) return v;
+  v.edition = man.edition;
+  v.method = man.methods?.[kind]?.label || null;
+  v.label = `${v.method || fallback} · edition ${man.edition}`;
+  if (man.generated) v.generated = man.generated;
+  v.manifest = path.join(folder, "MANIFEST.json");
+  return v;
+}
 const numericDesc = (a, b) => (b.rank ?? 0) - (a.rank ?? 0) || byRecency(a, b);
 
 // ---- discoverers, one per workflow TYPE -----------------------------------
@@ -135,6 +148,22 @@ function discoverTogaf(ws) {
       versions.push(v);
     }
   }
+  // Dated SAD editions copied beside a book edition (iterations/<edition>/), same method
+  // rank, ordered among themselves by generation time.
+  const itDir = path.join(dir, "iterations");
+  for (const name of ls(itDir)) {
+    const base = path.join(itDir, name);
+    for (const f of ls(base)) {
+      const m = f.match(/^TOGAF_EPIC_V(\d+)_SAD_(.+)\.md$/);
+      if (!m) continue;
+      const v = fileVersion(path.join(base, f), { version: `v${m[1]}`, label: `V${m[1]} — ${name}` });
+      if (!v) continue;
+      v.rank = Number(m[1]);
+      v.workspace = ws.name;
+      applyEditionManifest(v, base, "sad", `V${m[1]}`);
+      versions.push(v);
+    }
+  }
   return {
     id: "togaf_sad",
     label: "TOGAF SAD",
@@ -149,9 +178,11 @@ function discoverTogaf(ws) {
 function discoverBook(ws) {
   const versions = [];
   const v1 = path.join(DATA_OUT(ws.root), "book", "BOOK.md");
+  // Editions are ranked by WHEN they were generated, never by digits in a folder name
+  // ("gemma12b-levers" out-ranked "v5-2026-11-19-full" on its 12). An edition's
+  // MANIFEST.json (scripts/longview/lib/edition.mjs) supplies method + edition + date.
   const first = fileVersion(v1, { version: "v1", label: `v1 — ${ws.name}/book` });
   if (first) {
-    first.rank = 1;
     first.workspace = ws.name;
     versions.push(first);
   }
@@ -166,7 +197,7 @@ function discoverBook(ws) {
       label: `${name} — ${ws.name}/iterations/${name}`
     });
     if (!v) continue;
-    v.rank = Number((name.match(/(\d+)/) || [0, 0])[1]);
+    applyEditionManifest(v, base, "book", "AI Vampire");
     v.workspace = ws.name;
     const cov = path.join(base, "COVERAGE.md");
     if (exists(cov)) v.coverage_report = cov;
