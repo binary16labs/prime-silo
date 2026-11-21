@@ -194,6 +194,33 @@ function copyTree(src, dest, dry) {
   return n;
 }
 
+const defaultMemorayData = () =>
+  process.env.MEMORAY_DATA_DIR || path.join(process.env.USERPROFILE || process.env.HOME || "", ".mem0ray", "data");
+
+/** Session keys memo-ray already holds (Claude session/subagent ids, Antigravity uuids). */
+export function knownToMemoray(dataDir) {
+  const keys = new Set();
+  let index;
+  try {
+    index = JSON.parse(fs.readFileSync(path.join(dataDir, "index.json"), "utf8"));
+  } catch {
+    return keys; // no store here: everything is new
+  }
+  for (const id of index.sessions || []) {
+    let s;
+    try {
+      s = JSON.parse(fs.readFileSync(path.join(dataDir, "entities", `${id}.json`), "utf8"));
+    } catch {
+      continue;
+    }
+    const p = s.metadata?.sessionPath || s.metadata?.filePath;
+    if (!p) continue;
+    const base = path.basename(String(p).replace(/[\\/]+$/, "")).replace(/\.jsonl$/i, "");
+    keys.add(s.agent === "Antigravity" ? base.toLowerCase() : base);
+  }
+  return keys;
+}
+
 /** session key → machine, across every machine. Keys seen on two machines are reported. */
 export function buildProvenance(sources) {
   const { claude, anti } = candidatesFor(sources, null);
@@ -246,13 +273,42 @@ function main() {
       copied += copyTree(a.abs, path.join(out, "antigravity", "brain", a.key), dry);
       from[a.from] = (from[a.from] || 0) + 1;
     }
+    // INGEST VIEW — what memo-ray reads. memo-ray ids a session's EVENTS by file path, so
+    // re-reading a session it already holds from a new folder APPENDS a second copy of
+    // every event. The ingest folder therefore holds only sessions memo-ray does not have
+    // yet (plus ones already in it, so their later growth keeps flowing at a stable path).
+    // Known sessions that grew are counted, not ingested, until memo-ray can re-home a
+    // session (replace its events) — see the follow-up in DUAL-BRAIN-SYNC §0.3.
+    const known = knownToMemoray(opt("--known-from", defaultMemorayData()));
+    const ingest = path.join(out, "ingest");
+    const inIngest = (rel) => fs.existsSync(path.join(ingest, rel));
+    const ing = { claude_new: 0, antigravity_new: 0, known_skipped: 0, files_copied: 0 };
+    for (const c of pc.values()) {
+      const rel = path.join("claude", "projects", c.key);
+      if (known.has(c.sid) && !inIngest(rel)) {
+        ing.known_skipped++;
+        continue;
+      }
+      if (copyIfChanged(c.abs, path.join(ingest, rel), dry)) ing.files_copied++;
+      ing.claude_new++;
+    }
+    for (const a of pa.values()) {
+      const rel = path.join("antigravity", "brain", a.key);
+      if (known.has(a.key) && !inIngest(rel)) {
+        ing.known_skipped++;
+        continue;
+      }
+      ing.files_copied += copyTree(a.abs, path.join(ingest, rel), dry);
+      ing.antigravity_new++;
+    }
     report.merge = {
       host,
       out,
       claude: { copies_seen: claude.length, sessions: pc.size },
       antigravity: { copies_seen: anti.length, conversations: pa.size },
       chosen_from: from,
-      files_copied: copied
+      files_copied: copied,
+      ingest: { dir: ingest, memoray_known: known.size, ...ing }
     };
     if (!dry) {
       fs.mkdirSync(out, { recursive: true });

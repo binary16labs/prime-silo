@@ -141,7 +141,9 @@ async function runInventory() {
   // One entity per real session: the same session can arrive as two copies (an old
   // satellite pull + the hub's merged satellite folder). Dropped copies' cards are
   // set aside below, never deleted.
-  const { keep: sessions, dropped } = dedupeSessions(listSessions({ agents }), q);
+  const { keep: sessions, dropped } = dedupeSessions(listSessions({ agents }), q, (id) =>
+    fs.existsSync(cardPath(id))
+  );
   const prov = loadProvenance();
   const localHost = (process.env.ESTATE_HOST || os.hostname()).toLowerCase();
   const inventory = [];

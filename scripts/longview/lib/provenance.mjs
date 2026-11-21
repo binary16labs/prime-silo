@@ -27,11 +27,12 @@ export function sessionKey(entity) {
 
 /**
  * Collapse entities that are copies of the same session. Keeps the most complete copy
- * (most events, then latest timestamp, then lowest id — deterministic). If ANY copy is
+ * (most events, then the one already carded, then latest timestamp, then lowest id —
+ * deterministic). If ANY copy is
  * quarantined the whole group is held back, so a duplicate can never re-admit a
  * quarantined session under a fresh id.
  */
-export function dedupeSessions(sessions, quarantined = new Set()) {
+export function dedupeSessions(sessions, quarantined = new Set(), hasCard = () => false) {
   const groups = new Map();
   for (const s of sessions) {
     const k = `${s.agent}|${sessionKey(s) ?? s.id}`;
@@ -49,6 +50,8 @@ export function dedupeSessions(sessions, quarantined = new Set()) {
     g.sort(
       (a, b) =>
         (b.children_ids || []).length - (a.children_ids || []).length ||
+        // equal content: keep the copy that already has a card (no needless re-carding)
+        Number(hasCard(b.id)) - Number(hasCard(a.id)) ||
         (b.timestamp || 0) - (a.timestamp || 0) ||
         String(a.id).localeCompare(String(b.id))
     );

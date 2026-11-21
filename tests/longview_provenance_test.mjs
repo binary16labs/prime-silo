@@ -69,6 +69,15 @@ assert.equal(
   assert.deepEqual(dropped, [{ id: "old", kept: "new", reason: "duplicate_copy" }]);
 }
 
+// 4b. Equal copies: the already-carded one is kept, whatever its id or date.
+{
+  const carded = claude("zzz", `C:\\Users\\nsdha\\.claude\\projects\\p\\${U2}.jsonl`, 4);
+  const fresh = claude("aaa", `F:\\backups\\satellite\\optimus\\claude\\projects\\p\\${U2}.jsonl`, 4);
+  fresh.timestamp = 99;
+  const { keep } = dedupeSessions([fresh, carded], new Set(), (id) => id === "zzz");
+  assert.deepEqual(keep.map((s) => s.id), ["zzz"]);
+}
+
 // 5. PRIVACY: if any copy is quarantined, no copy gets through under a fresh id.
 {
   const q = claude("q-old", `C:\\Users\\nsdha\\.claude\\projects\\p\\${U2}.jsonl`, 3);
@@ -144,9 +153,18 @@ assert.equal(
   put(`sessions-2026-07-27-asus/claude/history.jsonl`, "{}\n");
   put(`sessions-2026-07-27-asus/antigravity/antigravity-ide-brain/${U1}/.system_generated/logs/transcript.jsonl`, "{}\n");
   put(`live/t480/claude/proj/aaaaaaaa-1111-2222-3333-444444444444.jsonl`, "{}\n");
+  // a fake memo-ray store that already holds the Antigravity conversation U1
+  const store = fs.mkdtempSync(path.join(os.tmpdir(), "lvs-"));
+  fs.mkdirSync(path.join(store, "entities"));
+  fs.writeFileSync(path.join(store, "index.json"), JSON.stringify({ sessions: ["e1"] }));
+  fs.writeFileSync(
+    path.join(store, "entities", "e1.json"),
+    JSON.stringify({ id: "e1", agent: "Antigravity", metadata: { sessionPath: `C:\\Users\\nsdha\\.gemini\\antigravity-ide\\brain\\${U1}` } })
+  );
+  const env = { ...process.env, ESTATE_BACKUP_ROOT: root, ESTATE_HUB_HOST: "t480", MEMORAY_DATA_DIR: store };
   const run = () => {
     const r = spawnSync(process.execPath, [path.join(REPO, "scripts/estate_satellite_merge.mjs"), "--host", "optimus"], {
-      env: { ...process.env, ESTATE_BACKUP_ROOT: root, ESTATE_HUB_HOST: "t480" },
+      env,
       encoding: "utf8"
     });
     assert.equal(r.status, 0, r.stderr);
@@ -158,14 +176,36 @@ assert.equal(
   const merged = fs.readFileSync(path.join(root, `satellite/optimus/claude/projects/proj/${U2}.jsonl`), "utf8");
   assert.equal(merged, '{"a":1}\n{"b":2}\n', "the bigger (live) copy wins");
   assert.ok(!fs.existsSync(path.join(root, "satellite/optimus/claude/projects/history.jsonl")), "history is not a session");
-  assert.equal(run().merge.files_copied, 0, "second run copies nothing");
+  // memo-ray ingests ONLY what it lacks: re-reading U1 from a new path would duplicate its events
+  assert.equal(first.merge.ingest.claude_new, 1);
+  assert.equal(first.merge.ingest.antigravity_new, 0);
+  assert.equal(first.merge.ingest.known_skipped, 1);
+  assert.ok(fs.existsSync(path.join(root, `satellite/optimus/ingest/claude/projects/proj/${U2}.jsonl`)));
+  assert.ok(!fs.existsSync(path.join(root, `satellite/optimus/ingest/antigravity/brain/${U1}`)));
+  const second = run();
+  assert.equal(second.merge.files_copied, 0, "second run copies nothing");
+  assert.equal(second.merge.ingest.files_copied, 0, "second run ingests nothing new");
+  // once memo-ray knows U2 (read from the ingest folder), it STAYS in ingest so growth flows
+  fs.writeFileSync(path.join(store, "index.json"), JSON.stringify({ sessions: ["e1", "e2"] }));
+  fs.writeFileSync(
+    path.join(store, "entities", "e2.json"),
+    JSON.stringify({ id: "e2", agent: "Claude", metadata: { filePath: path.join(root, `satellite/optimus/ingest/claude/projects/proj/${U2}.jsonl`) } })
+  );
+  put(`live/optimus/claude/proj/${U2}.jsonl`, '{"a":1}\n{"b":2}\n{"c":3}\n');
+  const third = run();
+  assert.equal(third.merge.ingest.claude_new, 1, "a session already in ingest keeps updating");
+  assert.equal(
+    fs.readFileSync(path.join(root, `satellite/optimus/ingest/claude/projects/proj/${U2}.jsonl`), "utf8").split("\n").length,
+    4
+  );
+  fs.rmSync(store, { recursive: true, force: true });
   const prov = JSON.parse(fs.readFileSync(path.join(root, "provenance.json"), "utf8"));
   assert.equal(prov.keys[U2], "optimus");
   assert.equal(prov.keys[U1], "optimus");
   assert.equal(prov.keys["aaaaaaaa-1111-2222-3333-444444444444"], "t480");
   // the hub's own sessions are never merged into a satellite folder
   const self = spawnSync(process.execPath, [path.join(REPO, "scripts/estate_satellite_merge.mjs"), "--host", "t480"], {
-    env: { ...process.env, ESTATE_BACKUP_ROOT: root, ESTATE_HUB_HOST: "t480" },
+    env,
     encoding: "utf8"
   });
   assert.equal(self.status, 2);
