@@ -165,6 +165,33 @@ const dump = spawnSync(browser, [
 ], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120000 });
 const svgCount = (dump.stdout.match(/<svg[^>]*aria-roledescription/g) || []).length;
 const errCount = (dump.stdout.match(/aria-roledescription="error"/g) || []).length;
+// Name the broken diagrams (index in document order + the source's first
+// lines), so a failed gate says WHAT to fix, not only how many.
+// Same fence rule as mdToHtml (a trimmed line starting ``` opens/closes).
+const diagramSources = [];
+{
+  let cur = null;
+  for (const line of md.split(/\r?\n/)) {
+    const t = line.trim();
+    if (cur !== null) {
+      if (t.startsWith("```")) {
+        diagramSources.push(cur);
+        cur = null;
+      } else cur.push(line);
+    } else if (/^```mermaid\b/.test(t)) cur = [];
+  }
+}
+const svgErrorBlocks = [];
+if (errCount) {
+  const chunks = dump.stdout.split('<pre class="mermaid"').slice(1);
+  chunks.forEach((c, i) => {
+    if (c.includes('aria-roledescription="error"'))
+      svgErrorBlocks.push({
+        index: i,
+        source_head: (diagramSources[i] || []).slice(0, 3).join(" | ").slice(0, 200)
+      });
+  });
+}
 // fit telemetry: "<fitted>/<scaled-down>" — an unfitted diagram is one that can
 // still overflow the page box and collide with body text.
 const fitMatch = dump.stdout.match(/data-fit="(\d+)\/(\d+)"/);
@@ -194,11 +221,13 @@ const result = {
   svg_scaled_down: fitScaled,
   svg_over_tall: overTall,
   pdf: pdfPath,
-  pdf_bytes: ok ? fs.statSync(pdfPath).size : 0,
+  // the real size: a gate failure must not read as "no PDF" when one was printed
+  pdf_bytes: printed ? fs.statSync(pdfPath).size : 0,
   html: htmlPath,
   mermaid_blocks: mermaidCount,
   svg_rendered: svgCount,
   svg_errors: errCount,
+  svg_error_blocks: svgErrorBlocks,
   browser: path.basename(browser)
 };
 console.log(JSON.stringify(result));

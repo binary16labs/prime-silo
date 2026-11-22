@@ -66,6 +66,9 @@ import { fileURLToPath } from "url";
 import { config, projectRoot, stateDir, workspaceDir, ensureWorkspace } from "./lib/config.mjs";
 import { writeEdition } from "./lib/edition.mjs";
 import { promptVersion } from "./lib/provenance.mjs";
+import { checkPhase } from "./lib/phase_gate.mjs";
+import { checkRuntimePython } from "./lib/runtime_py.mjs";
+import { readLedger } from "./lib/ledger.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const runner = path.join(__dirname, "longview.mjs");
@@ -411,6 +414,23 @@ async function main() {
     }
   }
 
+  // Preflight the runtime python the code/enrich/sad phases shell into. A missing
+  // dependency is a configuration fault, not a transient wedge, so auto-resume
+  // does not wait for it: it stops here, before any phase runs (C0: code and
+  // enrich died on "No module named 'pydantic'" hours into the run).
+  if (plan.some((p) => ["code", "enrich", "sad"].includes(p.id))) {
+    const py = checkRuntimePython(path.join(projectRoot, "runtime"));
+    console.log(
+      `  runtime py   : ${py.ok ? "\x1b[32mloads benny ✓\x1b[0m" : `\x1b[31mCANNOT LOAD benny — ${py.error}\x1b[0m`}  [${py.source}]`
+    );
+    if (!py.ok && !has("force")) {
+      console.error(
+        `\nThe runtime python (${py.py}) cannot import the benny CLI, so code/enrich/sad would fail.\nInstall the Prime-Silo runtime bundle, or set PRIME_SILO_RUNTIME_PY to a python with the benny deps. --force to override.`
+      );
+      process.exit(4);
+    }
+  }
+
   const go = await confirm(
     `\nProceed with \x1b[36m${agent.model}\x1b[0m as the proven agent for release ${release.tag}?`
   );
@@ -453,6 +473,50 @@ async function main() {
   const livePath = path.join(recordDir, "live.json");
   const telemetryPath = path.join(runDir, "telemetry.jsonl");
   const rel = (p) => path.relative(recordDir, p).replace(/\\/g, "/");
+
+  // Stage gate inputs: what each phase must have written (lib/phase_gate.mjs).
+  // Findings (every warn/fail) go to the run's findings.jsonl AND the cross-run
+  // longview/pipeline/findings.jsonl, so nothing a stage found is lost between
+  // cycles; the V8 carry-forward ledger (EP-Y Y3) reads from here.
+  const opusSeg = config.OPUS_DIR.split("/");
+  const gatePaths = {
+    sadMd: workspaceDir("data_out", "TOGAF_EPIC_V7_SAD_binary16.md"),
+    sadPdf: workspaceDir("data_out", "TOGAF_EPIC_V7_SAD_binary16.pdf"),
+    bookMd: workspaceDir("data_out", ...opusSeg, "THE-AI-VAMPIRE.md"),
+    bookPdf: workspaceDir("data_out", ...opusSeg, "THE-AI-VAMPIRE.pdf")
+  };
+  const statOf = (p) => {
+    try {
+      const st = fs.statSync(p);
+      return { size: st.size, mtimeMs: st.mtimeMs };
+    } catch {
+      return null;
+    }
+  };
+  const findingsFiles = [path.join(runDir, "findings.jsonl"), path.join(recordDir, "findings.jsonl")];
+  const recordFinding = (gate, attempt) => {
+    const line =
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        tag: release.tag,
+        commit: release.commit,
+        run: rel(runDir),
+        phase: gate.id,
+        attempt,
+        verdict: gate.verdict,
+        problem: gate.problem,
+        warnings: gate.warnings,
+        checks: gate.checks.filter((c) => !c.ok),
+        state: "open"
+      }) + "\n";
+    for (const f of findingsFiles) {
+      try {
+        fs.appendFileSync(f, line);
+      } catch {
+        /* the run record still carries the gate verdict */
+      }
+    }
+  };
 
   const live = {
     tag: release.tag,
@@ -526,7 +590,39 @@ async function main() {
         attempt: attempt + 1,
         log_file: rel(logFile)
       });
+      const phaseStartMs = Date.now();
       const res = await runPhase(phase, logFile, heartbeat);
+      // Stage gate: judge the phase by what it produced, not only its exit code.
+      let gate;
+      try {
+        gate = checkPhase(phase.id, {
+          exitOk: res.ok,
+          startedMs: phaseStartMs,
+          ledger: readLedger(),
+          stat: statOf,
+          paths: gatePaths
+        });
+      } catch (e) {
+        // A gate that cannot judge must not wave the phase through.
+        gate = {
+          id: phase.id,
+          verdict: "fail",
+          contract: "error",
+          checks: [],
+          problem: `stage gate error: ${e.message}`,
+          warnings: []
+        };
+      }
+      res.exit_ok = res.ok;
+      res.ok = gate.verdict !== "fail";
+      res.gate = {
+        verdict: gate.verdict,
+        contract: gate.contract,
+        problem: gate.problem,
+        warnings: gate.warnings,
+        checks: gate.checks
+      };
+      if (gate.verdict !== "pass") recordFinding(gate, attempt + 1);
       record.phases.push(res);
       persist();
       appendTelemetry({
@@ -536,6 +632,8 @@ async function main() {
         attempt: attempt + 1,
         ok: res.ok,
         exit: res.exit,
+        gate: gate.verdict,
+        problem: gate.problem,
         ms: res.ms,
         log_file: rel(logFile)
       });
@@ -544,14 +642,18 @@ async function main() {
         ok: res.ok,
         ms: res.ms,
         exit: res.exit,
+        gate: gate.verdict,
+        problem: gate.problem,
+        warnings: gate.warnings,
         log_file: rel(logFile)
       });
       writeLive({ current_phase: res.ok ? null : phase.id });
-      console.log(
-        res.ok
-          ? `\x1b[32m✓ ${phase.id} (${(res.ms / 60000).toFixed(1)} min)\x1b[0m`
-          : `\x1b[31m✗ ${phase.id} exit=${res.exit} (${(res.ms / 60000).toFixed(1)} min)\x1b[0m`
-      );
+      const mins = (res.ms / 60000).toFixed(1);
+      if (gate.verdict === "pass")
+        console.log(`\x1b[32m✓ ${phase.id} (${mins} min) · gate: ${gate.contract}\x1b[0m`);
+      else if (gate.verdict === "warn")
+        console.log(`\x1b[33m⚠ ${phase.id} (${mins} min) · ${gate.warnings.join("; ")}\x1b[0m`);
+      else console.log(`\x1b[31m✗ ${phase.id} (${mins} min) · ${gate.problem}\x1b[0m`);
       if (res.ok) break; // phase complete → next phase
       if (has("continue-on-error")) break; // press on to the next phase despite failure
       if (!autoResume) {
@@ -640,8 +742,16 @@ async function main() {
   console.log("\n\x1b[1m╚══ summary ══╝\x1b[0m");
   for (const p of record.phases)
     console.log(
-      `  ${p.ok ? "✓" : "✗"} ${p.id.padEnd(10)} ${(p.ms / 60000).toFixed(1)} min${p.ok ? "" : `  exit=${p.exit}`}`
+      `  ${!p.ok ? "✗" : p.gate?.verdict === "warn" ? "⚠" : "✓"} ${p.id.padEnd(10)} ${(p.ms / 60000).toFixed(1)} min${
+        !p.ok
+          ? `  ${p.gate?.problem || `exit=${p.exit}`}`
+          : p.gate?.verdict === "warn"
+            ? `  ${p.gate.warnings.join("; ")}`
+            : ""
+      }`
     );
+  const nFindings = record.phases.filter((p) => p.gate && p.gate.verdict !== "pass").length;
+  if (nFindings) console.log(`  findings     : ${nFindings} → ${findingsFiles[0]}`);
   console.log(`  run record   : ${recordPath}`);
   console.log(`  deliverables : ${record.deliverables.data_out}`);
   if (plan.some((p) => p.group === "sad"))

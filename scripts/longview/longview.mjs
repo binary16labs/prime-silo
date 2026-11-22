@@ -54,6 +54,7 @@ import { chat, lastBalancedJson, repairTruncatedJson } from "./lib/llm.mjs";
 import { validateCard } from "./lib/gate.mjs";
 import { buildCardTriples } from "./lib/card_triples.mjs";
 import { Progress } from "./lib/eta.mjs";
+import { runtimePython, runtimeEnv } from "./lib/runtime_py.mjs";
 import { appendLedger, readLedger, mapVerdicts, writeStatus, readStatus } from "./lib/ledger.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1525,6 +1526,7 @@ async function runCode() {
     if (!fs.existsSync(target)) {
       console.log(`[code] junction failed (${(r.stderr || "").trim()}) — skipping code graph`);
       appendLedger({ phase: "code", ok: false, error: "junction failed" });
+      process.exitCode = 1; // the pipeline's stage gate must see this as a failure
       return;
     }
     console.log(`[code] junction: ${target} → ${projectRoot}`);
@@ -1532,17 +1534,20 @@ async function runCode() {
   writeStatus({ phase: "code" });
   const started = Date.now();
   console.log("[code] benny enrich (Tree-Sitter scan → code graph → correlate)…");
+  // The bundled runtime python (same one the SAD uses) — the PATH python has
+  // no benny deps (C0: died on "No module named 'pydantic'" in 0.0 min).
+  // runtimeEnv forces UTF-8 stdio (braille spinners crash cp1252) and puts the
+  // bundle's site-packages on PYTHONPATH; subprocessEnv adds the repo .env.
+  const runtimeDir = path.join(projectRoot, "runtime");
+  const rp = runtimePython();
   const r = spawnSync(
-    "python",
+    rp.py,
     ["benny_cli.py", "enrich", "--workspace", config.WORKSPACE, "--src", "src/prime-silo", "--run"],
     {
-      cwd: path.join(projectRoot, "runtime"),
+      cwd: runtimeDir,
       encoding: "utf8",
       timeout: 3600000,
-      // The enrich CLI prints progress glyphs (braille spinners) that crash
-      // Python's cp1252 console encoder on Windows — force UTF-8 stdio.
-      // subprocessEnv: python needs the repo .env (LM endpoints etc.) too.
-      env: subprocessEnv({ PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" })
+      env: runtimeEnv(runtimeDir, rp, subprocessEnv())
     }
   );
   const ok = r.status === 0;
@@ -1554,7 +1559,8 @@ async function runCode() {
   console.log(
     `[code] ${ok ? "ok" : "FAILED"} (${((Date.now() - started) / 1000 / 60).toFixed(1)} min) ${tail.slice(0, 300)}`
   );
-  appendLedger({ phase: "code", ok, ms: Date.now() - started, tail: tail.slice(0, 500) });
+  appendLedger({ phase: "code", ok, ms: Date.now() - started, python: rp.source, tail: tail.slice(0, 500) });
+  if (!ok) process.exitCode = 1;
 }
 
 // Graph enrichment (ADR-005 horizontal mechanism, knowledge half): after the
@@ -1570,9 +1576,11 @@ async function runEnrichGraph() {
   console.log(`[enrich] live stage detail: ${workspaceDir("longview", "enrich_progress.json")}`);
   // Streamed (not spawnSync-buffered) so stage progress reaches the console —
   // and the dashboard — while the run is live instead of one blob at the end.
+  const runtimeDir = path.join(projectRoot, "runtime");
+  const rp = runtimePython(); // same python as code + sad (see runCode)
   const { ok, tail } = await new Promise((resolve) => {
     const child = spawn(
-      "python",
+      rp.py,
       [
         "benny_cli.py",
         "enrich-graph",
@@ -1583,11 +1591,11 @@ async function runEnrichGraph() {
         config.INGEST_MODEL
       ],
       {
-        cwd: path.join(projectRoot, "runtime"),
-        // Same cp1252 braille-glyph guard as runCode. subprocessEnv layers the
-        // repo .env under the real environment — the python side needs
-        // BENNY_LMSTUDIO_ENDPOINTS / BENNY_EMBED_MODEL etc. for its LLM calls.
-        env: subprocessEnv({ PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" })
+        cwd: runtimeDir,
+        // Same cp1252 guard + bundle site-packages as runCode. subprocessEnv
+        // layers the repo .env under the real environment — the python side
+        // needs BENNY_LMSTUDIO_ENDPOINTS / BENNY_EMBED_MODEL for its LLM calls.
+        env: runtimeEnv(runtimeDir, rp, subprocessEnv())
       }
     );
     const lines = [];
@@ -1640,7 +1648,8 @@ async function runEnrichGraph() {
   console.log(
     `[enrich] ${ok ? "ok" : "FAILED"} (${((Date.now() - started) / 1000 / 60).toFixed(1)} min) ${tail.slice(0, 300)}`
   );
-  appendLedger({ phase: "enrich", ok, ms: Date.now() - started, tail: tail.slice(0, 500) });
+  appendLedger({ phase: "enrich", ok, ms: Date.now() - started, python: rp.source, tail: tail.slice(0, 500) });
+  if (!ok) process.exitCode = 1;
 }
 
 // -------------------------------------------------------------------- review
@@ -1942,6 +1951,8 @@ function runPdfPhase() {
     console.log(
       `[pdf] no assembled book at data_out/${config.OPUS_DIR}/THE-AI-VAMPIRE.md — run the opus phase first`
     );
+    appendLedger({ phase: "pdf", ok: false, error: "no assembled book" });
+    process.exitCode = 1;
     return;
   }
   const md = fs.readFileSync(bookMd, "utf8");
@@ -1956,6 +1967,7 @@ function runPdfPhase() {
       : `[pdf] FAILED — ${r.error} (HTML is at ${htmlPath})`
   );
   writeStatus({ phase: "pdf_done", pdf: r.ok ? pdfPath : null });
+  if (!r.ok) process.exitCode = 1;
 }
 
 // -------------------------------------------------------------------- sad
@@ -1971,23 +1983,18 @@ function runSad() {
   const script = path.join("scripts", "togaf_epic_v7.py");
   if (!fs.existsSync(path.join(runtimeDir, script))) {
     console.log(`[sad] canonical flow missing: runtime/${script}`);
+    appendLedger({ phase: "sad", flow: "togaf_epic_v7", exit: null, error: "canonical flow missing" });
+    process.exitCode = 1;
     return;
   }
   // Bundled runtime python carries the benny deps (fastapi/neo4j/litellm) with no
   // dev install; override via PRIME_SILO_RUNTIME_PY / PRIME_SILO_RUNTIME_BUNDLE.
-  const bundle =
-    process.env.PRIME_SILO_RUNTIME_BUNDLE ||
-    path.join(
-      process.env.APPDATA || path.join(process.env.USERPROFILE || "", "AppData", "Roaming"),
-      "space-agent",
-      "runtime-bundle"
-    );
-  const py = process.env.PRIME_SILO_RUNTIME_PY || path.join(bundle, "python", "python.exe");
-  const env = {
-    ...process.env,
-    PYTHONPATH: [runtimeDir, path.join(bundle, "site")].filter(Boolean).join(path.delimiter),
+  // One resolver for code/enrich/sad (lib/runtime_py.mjs).
+  const rp = runtimePython();
+  const py = rp.py;
+  const env = runtimeEnv(runtimeDir, rp, process.env, {
     BENNY_LMSTUDIO_ENDPOINTS: process.env.BENNY_LMSTUDIO_ENDPOINTS || "http://127.0.0.1:1234/v1"
-  };
+  });
   // Prereq: refresh the CODE graph (CodeEntity+CODE_REL) so the ICONIX robustness
   // section grounds on real code, not an empty graph. Pure Tree-sitter (CPU), and
   // idempotent (clears the prior snapshot first → no duplicate-symbol poison).
@@ -2001,6 +2008,7 @@ function runSad() {
         env,
         stdio: "inherit"
       });
+      appendLedger({ phase: "sad", artifact: "code_scan", ok: cs.status === 0, exit: cs.status ?? null });
       if (cs.status !== 0)
         console.log(
           `[sad] WARN code_graph_scan exit=${cs.status} — robustness may be thin (Neo4j up? src present?)`
@@ -2030,9 +2038,10 @@ function runSad() {
     });
   } else {
     console.log(
-      `[sad] togaf_epic_v7 exit=${r.status} — it needs the LM host (gemma) + Neo4j; re-run 'longview sad' when the eGPU is free (e.g. after training).`
+      `[sad] togaf_epic_v7 exit=${r.status} — see the FAILED line above (LM host, Neo4j, or the PDF diagram gate); re-run 'longview sad' when the eGPU is free (e.g. after training).`
     );
     writeStatus({ phase: "sad_failed", flow: "togaf_epic_v7", exit: r.status ?? null });
+    process.exitCode = 1; // was swallowed: the pipeline printed ✓ on a failed SAD (C0)
   }
 }
 
