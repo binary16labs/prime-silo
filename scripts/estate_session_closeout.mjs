@@ -32,7 +32,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { spawn } from "child_process";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -42,6 +42,28 @@ const opt = (k, d = null) => {
   return i >= 0 && argv[i + 1] ? argv[i + 1] : d;
 };
 const HOST = (process.env.ESTATE_HOST || os.hostname()).toLowerCase();
+// home_code sits beside prime-silo in the binary16 folder on every node (T-017).
+const HOME_CODE_DIR = process.env.HOME_CODE_DIR || path.resolve(HERE, "..", "..", "home_code");
+
+// T-017 (HQ-01 / T-003 acceptance 4): every close-out re-exports this host's shared quarantine
+// manifest and re-stamps its captured cards with the export's sha256, so the hub checks this
+// node in order-free `hash_pointer` mode. Same choke point as every home_code capture writer.
+//   ok      -> stamped (writeIfChanged: nothing written when nothing moved)
+//   skipped -> no home_code on this node (nothing to keep fresh); reported, not an error
+//   failed  -> the exporter threw; the close-out must exit non-zero, never print ✓
+export async function stampHomeCodeQuarantine({ host = HOST, homeCodeDir = HOME_CODE_DIR } = {}) {
+  const lib = path.join(homeCodeDir, "scripts", "lib", "host-logs.mjs");
+  if (!exists(lib)) return { status: "skipped", reason: "home_code not found" };
+  try {
+    const mod = await import(pathToFileURL(lib).href);
+    if (typeof mod.refreshHostQuarantineStamp !== "function") {
+      return { status: "failed", reason: "home_code has no refreshHostQuarantineStamp (update home_code)" };
+    }
+    return { status: "ok", ...mod.refreshHostQuarantineStamp(host) };
+  } catch (e) {
+    return { status: "failed", reason: String(e?.message || e).split("\n")[0] };
+  }
+}
 const HOME = os.homedir();
 const STATE = path.join(HOME, ".mem0ray", "closeout");
 const RECEIPTS = path.join(STATE, "receipts.jsonl");
@@ -279,12 +301,16 @@ async function main() {
   const results = [];
   for (const it of items) results.push(await closeOne(it, { synced }));
   const ok = results.filter((r) => r.ok).length;
-  if (flag("--json")) console.log(JSON.stringify({ host: HOST, due: items.length, ok, results: results.map(({ transcript, ...r }) => r) }, null, 1));
+  const qstamp = await stampHomeCodeQuarantine();
+  if (flag("--json")) console.log(JSON.stringify({ host: HOST, due: items.length, ok, quarantine_stamp: qstamp, results: results.map(({ transcript, ...r }) => r) }, null, 1));
   else {
     console.log(`[closeout] ${HOST}: ${ok}/${results.length} captured + backed up (memo-ray sync: ${synced || "failed"})`);
     for (const r of results.filter((x) => !x.ok).slice(0, 20)) console.log(`  ✗ ${r.agent} ${r.session.slice(0, 8)} — ${r.notes.join("; ")}`);
+    const mark = { ok: "✓", skipped: "–", failed: "✗" }[qstamp.status];
+    const detail = qstamp.status === "ok" ? `${qstamp.cards} cards → ${String(qstamp.quarantine_export_sha256).slice(0, 12)}` : qstamp.reason;
+    console.log(`  ${mark} quarantine stamp (HQ-01): ${qstamp.status} — ${detail}`);
   }
-  if (ok < results.length) process.exitCode = 1;
+  if (ok < results.length || qstamp.status === "failed") process.exitCode = 1;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
