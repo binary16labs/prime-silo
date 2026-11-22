@@ -109,13 +109,28 @@ function buildDownloadsTable(currentTag) {
   return lines.join("\n");
 }
 
-function composeReleaseBody(currentTag, notesBody) {
+// GitHub refuses a release body over 125,000 characters (422 on create/update). v1.24.6 shipped
+// 459 commits since v1.24.5 → a 277k-char fallback body → all six builds passed and publish
+// failed. Keep the downloads table whole, cut the notes at a line boundary, and link the full list.
+const MAX_RELEASE_BODY_CHARS = 120000;
+
+function capReleaseBody(body, { max = MAX_RELEASE_BODY_CHARS, fullListUrl = "" } = {}) {
+  if (body.length <= max) return body;
+  const tail = `\n\n…and more. The full change list is too long for a release page${fullListUrl ? `: ${fullListUrl}` : "."}`;
+  const cut = body.lastIndexOf("\n", max - tail.length);
+  return body.slice(0, cut > 0 ? cut : max - tail.length).trimEnd() + tail;
+}
+
+function composeReleaseBody(currentTag, notesBody, previousTag = "") {
   const sections = [buildDownloadsTable(currentTag)];
   const sanitizedNotesBody = sanitizeReleaseBody(notesBody);
   if (sanitizedNotesBody) {
     sections.push(sanitizedNotesBody);
   }
-  return sections.join("\n\n").trim();
+  const fullListUrl = previousTag
+    ? `https://github.com/${resolveRepositorySlug()}/compare/${previousTag}...${currentTag}`
+    : "";
+  return capReleaseBody(sections.join("\n\n").trim(), { fullListUrl });
 }
 
 function tagExists(tag) {
@@ -412,7 +427,7 @@ async function main() {
   }
 
   body = sanitizeReleaseBody(body);
-  body = composeReleaseBody(options.currentTag, body);
+  body = composeReleaseBody(options.currentTag, body, options.previousTag);
 
   writeOutput("release_body", body);
   writeOutput("release_commit_count", String(commits.length));
