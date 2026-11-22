@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { checkPhase, PHASES_WITH_CONTRACTS } from "../scripts/longview/lib/phase_gate.mjs";
 import { runtimePython, runtimeEnv, checkRuntimePython } from "../scripts/longview/lib/runtime_py.mjs";
+import { repairMarkdown, mermaidBlocks, fallbackDiagrams } from "../scripts/longview/lib/md_fences.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const T0 = Date.parse("2026-11-22T00:00:00Z");
@@ -124,12 +125,58 @@ const src = fs.readFileSync(path.join(REPO, "scripts/longview/longview.mjs"), "u
 assert.doesNotMatch(src, /spawn(Sync)?\(\s*"python"/, "bare PATH python is back in longview.mjs");
 // one per failure path: code (junction, python), enrich (python), pdf (no book,
 // print), sad (flow missing, flow failed)
-const FAIL_PATHS = { runCode: 2, runEnrichGraph: 1, runPdfPhase: 2, runSad: 2 };
+const FAIL_PATHS = { runCode: 2, runEnrichGraph: 1, runPdfPhase: 2, runSad: 2, runSadPdf: 2 };
 for (const [fn, n] of Object.entries(FAIL_PATHS)) {
   const start = src.indexOf(`function ${fn}(`);
   const body = src.slice(start, src.indexOf("\n}\n", start));
   const got = (body.match(/process\.exitCode = 1/g) || []).length;
   assert.equal(got, n, `${fn}: every failure path must set a failing exit code (${got}/${n})`);
 }
+
+// ── 9. Fence repair (the C0 SAD's three defects, in miniature). ──
+const F = "```";
+const doc = [
+  "# A", "", `${F}markdown`, "## wrapped section", "prose", `${F}`, "",
+  `${F}mermaid`, "flowchart LR", "  a --> b", `${F}`,
+  "References: [EV-1]", `${F}`, "",                       // stray closer
+  "**Diagram**", "", `${F}mermaid`, "flowchart LR", "  c --> d", `${F}`,
+  `${F}mermaid`, "classDiagram-diagnostics", "  class x", `${F}`,
+  `${F}js`, "let a = 1;", `${F}`
+].join("\n");
+const naive = (md) => { // the HTML renderer's rule: any fence closes
+  let mode = null, n = 0;
+  for (const l of md.split("\n")) { const t = l.trim(), f = /^```(\w*)/.exec(t);
+    if (mode) { if (t.startsWith("```")) mode = null; continue; }
+    if (f) { mode = f[1] || "c"; if (f[1] === "mermaid") n++; } }
+  return n;
+};
+assert.notEqual(naive(doc), 3, "fixture reproduces the parity flip");
+const rep = repairMarkdown(doc);
+const kinds = rep.fixes.map((f) => f.kind).sort();
+assert.deepEqual(kinds, ["mermaid_type", "orphan_fence", "unwrapped_prose"]);
+assert.equal(naive(rep.md), 3, "after repair the renderer sees every diagram");
+assert.equal(mermaidBlocks(rep.md), 3);
+assert.match(rep.md, /^## wrapped section$/m, "wrapped prose is prose again");
+assert.match(rep.md, /^classDiagram$/m);
+assert.match(rep.md, /```js\nlet a = 1;\n```/, "ordinary code blocks untouched");
+assert.equal(repairMarkdown(rep.md).fixes.length, 0, "idempotent");
+assert.equal(repairMarkdown("x\n```mermaid\nflowchart LR\n").fixes[0].kind, "unclosed_block");
+assert.equal(repairMarkdown("ok\n```\ncode\n```\n").fixes.length, 0, "a balanced bare block is not an orphan");
+const fb = fallbackDiagrams(rep.md, [2]);
+assert.equal(mermaidBlocks(fb), 2, "fallback removes exactly the named diagram");
+assert.match(fb, /⚠ Diagram could not be rendered[\s\S]*```text\nclassDiagram/);
+
+// SAD gate: a repair that made the PDF pass is a recorded warning, not silence.
+g = run(
+  "sad",
+  [
+    { ts: at(100), phase: "sad", artifact: "md_repair", ok: true, fixes: { orphan_fence: 1 }, fallback: [189] },
+    { ts: at(101), phase: "sad", flow: "togaf_epic_v7", exit: 0, v7_exit: 1 }
+  ],
+  { "S.md": fresh, "S.pdf": fresh }
+);
+assert.equal(g.verdict, "warn");
+assert.match(g.warnings.join(), /1 orphan_fence/);
+assert.match(g.warnings.join(), /#189/);
 
 console.log("longview_stage_gate_test: all assertions passed");

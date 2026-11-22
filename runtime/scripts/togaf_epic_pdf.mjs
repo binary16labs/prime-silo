@@ -165,32 +165,27 @@ const dump = spawnSync(browser, [
 ], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120000 });
 const svgCount = (dump.stdout.match(/<svg[^>]*aria-roledescription/g) || []).length;
 const errCount = (dump.stdout.match(/aria-roledescription="error"/g) || []).length;
-// Name the broken diagrams (index in document order + the source's first
-// lines), so a failed gate says WHAT to fix, not only how many.
-// Same fence rule as mdToHtml (a trimmed line starting ``` opens/closes).
-const diagramSources = [];
-{
-  let cur = null;
-  for (const line of md.split(/\r?\n/)) {
-    const t = line.trim();
-    if (cur !== null) {
-      if (t.startsWith("```")) {
-        diagramSources.push(cur);
-        cur = null;
-      } else cur.push(line);
-    } else if (/^```mermaid\b/.test(t)) cur = [];
-  }
-}
+// Name the broken diagrams by index in document order + the source's first
+// lines, so a failed gate says WHAT to fix, not only how many. The source is
+// read from the HTML we just wrote (the exact text mermaid saw), so the index
+// can never drift from a second markdown parse.
+const MERMAID_OPEN = '<pre class="mermaid"';
+const diagramSources = html
+  .split(MERMAID_OPEN)
+  .slice(1)
+  .map((c) => c.slice(c.indexOf(">") + 1, c.indexOf("</pre>")).trim().split(/\r?\n/));
 const svgErrorBlocks = [];
 if (errCount) {
-  const chunks = dump.stdout.split('<pre class="mermaid"').slice(1);
-  chunks.forEach((c, i) => {
-    if (c.includes('aria-roledescription="error"'))
-      svgErrorBlocks.push({
-        index: i,
-        source_head: (diagramSources[i] || []).slice(0, 3).join(" | ").slice(0, 200)
-      });
-  });
+  dump.stdout
+    .split(MERMAID_OPEN)
+    .slice(1)
+    .forEach((c, i) => {
+      if (c.includes('aria-roledescription="error"'))
+        svgErrorBlocks.push({
+          index: i,
+          source_head: (diagramSources[i] || []).slice(0, 3).map((l) => l.trim()).join(" | ").slice(0, 200)
+        });
+    });
 }
 // fit telemetry: "<fitted>/<scaled-down>" — an unfitted diagram is one that can
 // still overflow the page box and collide with body text.
@@ -213,7 +208,26 @@ const printed = fs.existsSync(pdfPath) && fs.statSync(pdfPath).size > 10000;
 // have rendered as a real, non-error SVG.
 // A diagram that overflows the printable box overlaps the body text, so the fit
 // pass is part of the gate, not decoration.
-const ok = printed && errCount === 0 && svgCount >= mermaidCount && overTall === 0;
+// Fence parity: count mermaid blocks the way a correct parser would (a tagged
+// fence opens only OUTSIDE a block; only a bare fence closes). If the HTML
+// renderer saw fewer, a stray fence flipped parity and diagrams printed as raw
+// code; the C0 SAD lost 102 of 387 diagrams this way while svg>=mermaid held.
+// Kept inline (not imported) so the bundled runtime copy stays self-contained;
+// the same rule lives in scripts/longview/lib/md_fences.mjs (mermaidBlocks).
+let mdMermaid = 0;
+{
+  let open = null;
+  for (const line of md.split(/\r?\n/)) {
+    const m = /^\s*```\s*([\w-]*)/.exec(line);
+    if (!m) continue;
+    if (open === null) {
+      open = m[1];
+      if (m[1] === "mermaid") mdMermaid++;
+    } else if (m[1] === "") open = null;
+  }
+}
+const parityOk = mdMermaid === mermaidCount;
+const ok = printed && errCount === 0 && svgCount >= mermaidCount && overTall === 0 && parityOk;
 const result = {
   ok,
   printed,
@@ -228,6 +242,7 @@ const result = {
   svg_rendered: svgCount,
   svg_errors: errCount,
   svg_error_blocks: svgErrorBlocks,
+  fence_parity: { ok: parityOk, md_mermaid_blocks: mdMermaid, html_mermaid_blocks: mermaidCount },
   browser: path.basename(browser)
 };
 console.log(JSON.stringify(result));

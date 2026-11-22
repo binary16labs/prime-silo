@@ -55,6 +55,7 @@ import { validateCard } from "./lib/gate.mjs";
 import { buildCardTriples } from "./lib/card_triples.mjs";
 import { Progress } from "./lib/eta.mjs";
 import { runtimePython, runtimeEnv } from "./lib/runtime_py.mjs";
+import { repairMarkdown, fallbackDiagrams } from "./lib/md_fences.mjs";
 import { appendLedger, readLedger, mapVerdicts, writeStatus, readStatus } from "./lib/ledger.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -2020,16 +2021,33 @@ function runSad() {
   console.log(`[sad] canonical TOGAF EPIC v7 → runtime/${script} --workspace ${config.WORKSPACE}`);
   const args = ["--workspace", config.WORKSPACE];
   if (flag("resume")) args.push("--resume");
+  const sadStart = Date.now();
   const r = spawnSync(py, [script, ...args], { cwd: runtimeDir, env, stdio: "inherit" });
   appendLedger({
     phase: "sad",
-    flow: "togaf_epic_v7",
+    artifact: "v7",
     exit: r.status ?? null,
     error: r.error ? String(r.error) : null
   });
-  if (r.status === 0) {
+  // Feedback loop at the seam where model prose became the document: if v7 got
+  // as far as assembling the SAD in THIS run, repair its fences, re-print, fall
+  // back on diagrams that still fail, re-check. Only then is the phase judged.
+  const { mdPath, pdfPath } = sadPaths();
+  const assembled = fs.existsSync(mdPath) && fs.statSync(mdPath).mtimeMs >= sadStart - 2000;
+  const repair = assembled ? repairAndPrintSad(mdPath, pdfPath, runtimeDir, r.status ?? null) : null;
+  const finalExit = repair?.ran ? (repair.ok ? 0 : 1) : (r.status ?? null);
+  appendLedger({
+    phase: "sad",
+    flow: "togaf_epic_v7",
+    exit: finalExit,
+    v7_exit: r.status ?? null,
+    repaired: repair?.fixes?.length || 0,
+    fallback: repair?.fallback?.length || 0,
+    error: r.error ? String(r.error) : repair?.ran && !repair.ok ? repair.problem : null
+  });
+  if (finalExit === 0) {
     console.log(
-      `[sad] TOGAF_EPIC_V7_SAD_${config.WORKSPACE === "sessions_v1" ? "binary16" : config.WORKSPACE} written to data_out`
+      `[sad] TOGAF_EPIC_V7_SAD_${config.WORKSPACE === "sessions_v1" ? "binary16" : config.WORKSPACE} written to data_out${repair?.ran ? " (after fence repair: see the ledger md_repair entry)" : ""}`
     );
     writeStatus({
       phase: "sad_done",
@@ -2038,11 +2056,135 @@ function runSad() {
     });
   } else {
     console.log(
-      `[sad] togaf_epic_v7 exit=${r.status} — see the FAILED line above (LM host, Neo4j, or the PDF diagram gate); re-run 'longview sad' when the eGPU is free (e.g. after training).`
+      `[sad] togaf_epic_v7 exit=${finalExit} — ${repair?.ran ? repair.problem : "see the FAILED line above (LM host, Neo4j, or the PDF diagram gate)"}; re-run 'longview sad' when the eGPU is free, or 'longview sad-pdf' to repair + re-print without the LLM.`
     );
-    writeStatus({ phase: "sad_failed", flow: "togaf_epic_v7", exit: r.status ?? null });
+    writeStatus({ phase: "sad_failed", flow: "togaf_epic_v7", exit: finalExit });
     process.exitCode = 1; // was swallowed: the pipeline printed ✓ on a failed SAD (C0)
   }
+}
+
+const sadPaths = () => {
+  const mdPath = workspaceDir("data_out", "TOGAF_EPIC_V7_SAD_binary16.md");
+  return { mdPath, pdfPath: mdPath.replace(/\.md$/, ".pdf") };
+};
+
+// One print through the SAD's own PDF gate; returns its JSON verdict.
+function printSad(mdPath, pdfPath, runtimeDir) {
+  const p = spawnSync(
+    process.execPath,
+    [path.join(runtimeDir, "scripts", "togaf_epic_pdf.mjs"), mdPath, pdfPath],
+    { encoding: "utf8", timeout: 1800000, maxBuffer: 16 * 1024 * 1024 }
+  );
+  try {
+    return JSON.parse((p.stdout || "").trim().split(/\r?\n/).pop());
+  } catch {
+    return { ok: false, error: ((p.stderr || "") + (p.stdout || "")).slice(-300) || `exit ${p.status}` };
+  }
+}
+
+const sha1 = (s) => crypto.createHash("sha1").update(s).digest("hex");
+
+// Repair → print → fallback → re-print. The model's text is kept untouched in
+// <name>.raw.md; <name>.repair.json records what changed, so a repair can be
+// inspected or undone and a second run never mistakes repaired text for raw.
+function repairAndPrintSad(mdPath, pdfPath, runtimeDir, v7Exit) {
+  const current = fs.readFileSync(mdPath, "utf8");
+  const rawPath = mdPath.replace(/\.md$/, ".raw.md");
+  const markPath = mdPath.replace(/\.md$/, ".repair.json");
+  let mark = null;
+  try {
+    mark = JSON.parse(fs.readFileSync(markPath, "utf8"));
+  } catch {
+    /* first repair of this document */
+  }
+  const ours = mark && mark.repaired_sha1 === sha1(current) && fs.existsSync(rawPath);
+  const raw = ours ? fs.readFileSync(rawPath, "utf8") : current;
+  const { md: fixed, fixes } = repairMarkdown(raw);
+  if (!fixes.length && v7Exit === 0) return { ran: false, ok: true, fixes, fallback: [] };
+  if (!ours) fs.writeFileSync(rawPath, raw);
+  fs.writeFileSync(mdPath, fixed);
+  const byKind = {};
+  for (const f of fixes) byKind[f.kind] = (byKind[f.kind] || 0) + 1;
+  console.log(
+    `[sad] fence repair: ${fixes.length ? Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ") : "none needed"} (raw kept: ${path.basename(rawPath)})`
+  );
+  let res = printSad(mdPath, pdfPath, runtimeDir);
+  let fallback = [];
+  if (!res.ok && res.svg_error_blocks?.length && res.fence_parity?.ok !== false) {
+    fallback = res.svg_error_blocks;
+    console.log(
+      `[sad] ${fallback.length} diagram(s) still fail to render → printed as labelled source: ${fallback.map((b) => `#${b.index} ${String(b.source_head).slice(0, 40)}`).join("; ")}`
+    );
+    fs.writeFileSync(mdPath, fallbackDiagrams(fixed, fallback.map((b) => b.index)));
+    res = printSad(mdPath, pdfPath, runtimeDir);
+  }
+  const finalMd = fs.readFileSync(mdPath, "utf8");
+  fs.writeFileSync(
+    markPath,
+    JSON.stringify(
+      {
+        at: new Date().toISOString(),
+        raw_sha1: sha1(raw),
+        repaired_sha1: sha1(finalMd),
+        fixes: byKind,
+        fixes_detail: fixes.slice(0, 200),
+        fallback
+      },
+      null,
+      2
+    )
+  );
+  const problem = res.ok
+    ? null
+    : res.error ||
+      [
+        res.fence_parity && !res.fence_parity.ok && `fence parity ${res.fence_parity.html_mermaid_blocks}/${res.fence_parity.md_mermaid_blocks}`,
+        res.svg_errors && `${res.svg_errors} diagram error(s)`,
+        res.svg_over_tall && `${res.svg_over_tall} over-tall diagram(s)`,
+        !res.printed && "PDF not printed"
+      ]
+        .filter(Boolean)
+        .join(", ");
+  appendLedger({
+    phase: "sad",
+    artifact: "md_repair",
+    ok: !!res.ok,
+    fixes: byKind,
+    fallback: fallback.map((b) => b.index),
+    pdf_bytes: res.pdf_bytes ?? 0,
+    svg_errors: res.svg_errors ?? null,
+    fence_parity: res.fence_parity ?? null,
+    error: problem
+  });
+  console.log(
+    `[sad] PDF gate after repair: ${res.ok ? "PASS" : `FAIL — ${problem}`} (${((res.pdf_bytes || 0) / 1048576).toFixed(1)} MB)`
+  );
+  return { ran: true, ok: !!res.ok, fixes, fallback, res, problem };
+}
+
+// `longview sad-pdf`: repair + re-print an already-assembled SAD, no LLM, no v7
+// re-run. Same loop and ledger entries as the sad phase's tail.
+function runSadPdf() {
+  const runtimeDir = path.join(projectRoot, "runtime");
+  const { mdPath, pdfPath } = sadPaths();
+  if (!fs.existsSync(mdPath)) {
+    console.log(`[sad-pdf] no assembled SAD at ${mdPath}; run 'longview sad' first`);
+    appendLedger({ phase: "sad", flow: "togaf_epic_v7", exit: null, error: "no assembled SAD" });
+    process.exitCode = 1;
+    return;
+  }
+  const repair = repairAndPrintSad(mdPath, pdfPath, runtimeDir, null);
+  appendLedger({
+    phase: "sad",
+    flow: "togaf_epic_v7",
+    exit: repair.ok ? 0 : 1,
+    v7_exit: null,
+    mode: "sad-pdf",
+    repaired: repair.fixes.length,
+    fallback: repair.fallback.length,
+    error: repair.ok ? null : repair.problem
+  });
+  if (!repair.ok) process.exitCode = 1;
 }
 
 // ------------------------------------------------------------ status/report
@@ -2400,6 +2542,9 @@ async function main() {
       break;
     case "sad":
       runSad();
+      break;
+    case "sad-pdf":
+      runSadPdf();
       break;
     case "all":
       await runInventory();

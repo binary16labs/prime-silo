@@ -55,6 +55,15 @@ const CONTRACTS = {
       fileCheck(stat, paths.sadMd, startedMs, 10000, "SAD markdown"),
       fileCheck(stat, paths.sadPdf, startedMs, 10000, "SAD PDF")
     ];
+    // Repairs and fallbacks pass the gate but are never silent.
+    const rep = entries.filter((e) => e.artifact === "md_repair").pop();
+    if (rep && rep.ok) {
+      const n = Object.values(rep.fixes || {}).reduce((a, b) => a + b, 0);
+      if (n)
+        checks.push({ ok: false, soft: true, check: "fence repair", why: `${n} fence fix(es): ${Object.entries(rep.fixes).map(([k, v]) => `${v} ${k}`).join(", ")}` });
+      if (rep.fallback?.length)
+        checks.push({ ok: false, soft: true, check: "diagram fallback", why: `${rep.fallback.length} diagram(s) printed as source (#${rep.fallback.join(", #")})` });
+    }
     const scan = entries.find((e) => e.artifact === "code_scan");
     if (scan && !scan.ok)
       checks.push({ ok: false, soft: true, check: "code graph refresh", why: `exit ${scan.exit} — robustness may be thin` });
