@@ -97,10 +97,14 @@ const CONTRACTS = {
       });
     return checks;
   },
-  pdf: ({ entries, stat, paths, startedMs }) => [
-    ledgerResult(entries, "pdf"),
-    fileCheck(stat, paths.bookPdf, startedMs, 10000, "book PDF")
-  ]
+  pdf: ({ entries, stat, paths, startedMs }) => {
+    const checks = [ledgerResult(entries, "pdf"), fileCheck(stat, paths.bookPdf, startedMs, 10000, "book PDF")];
+    const rep = entries.filter((e) => e.artifact === "md_repair").pop();
+    const n = rep?.ok ? Object.values(rep.fixes || {}).reduce((a, b) => a + b, 0) : 0;
+    if (n)
+      checks.push({ ok: false, soft: true, check: "fence repair", why: `${n} fence fix(es): ${Object.entries(rep.fixes).map(([k, v]) => `${v} ${k}`).join(", ")}` });
+    return checks;
+  }
 };
 
 // Pure: everything it reads is injected, so the tests drive it with fakes.

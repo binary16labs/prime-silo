@@ -1956,7 +1956,14 @@ function runPdfPhase() {
     process.exitCode = 1;
     return;
   }
-  const md = fs.readFileSync(bookMd, "utf8");
+  // Same fence defects as the SAD (C0 book: 4 sections wrapped in ```markdown
+  // printed as code). Repair at the print seam; raw kept in .raw.md.
+  const rep = repairFileInPlace(bookMd);
+  if (rep.fixes.length) {
+    console.log(`[pdf] fence repair: ${fmtKinds(rep.byKind)} (raw kept: ${path.basename(rep.rawPath)})`);
+    appendLedger({ phase: "pdf", artifact: "md_repair", ok: true, fixes: rep.byKind });
+  }
+  const md = rep.md;
   const htmlPath = workspaceDir("data_out", ...opusSeg, "THE-AI-VAMPIRE.html");
   fs.writeFileSync(htmlPath, mdToHtml(md, { title: "The AI Vampire" }));
   const pdfPath = workspaceDir("data_out", ...opusSeg, "THE-AI-VAMPIRE.pdf");
@@ -2083,6 +2090,41 @@ function printSad(mdPath, pdfPath, runtimeDir) {
 }
 
 const sha1 = (s) => crypto.createHash("sha1").update(s).digest("hex");
+const fmtKinds = (byKind) => Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ");
+
+// Fence repair of a deliverable in place, for documents with no render gate of
+// their own (the book). Keeps the model's text in <name>.raw.md and records the
+// repair in <name>.repair.json; recognises its own earlier output by hash, so a
+// re-run repairs the raw text again instead of mistaking repaired text for raw.
+function repairFileInPlace(mdPath) {
+  const current = fs.readFileSync(mdPath, "utf8");
+  const rawPath = mdPath.replace(/\.md$/, ".raw.md");
+  const markPath = mdPath.replace(/\.md$/, ".repair.json");
+  let mark = null;
+  try {
+    mark = JSON.parse(fs.readFileSync(markPath, "utf8"));
+  } catch {
+    /* first repair of this document */
+  }
+  const ours = mark && mark.repaired_sha1 === sha1(current) && fs.existsSync(rawPath);
+  const raw = ours ? fs.readFileSync(rawPath, "utf8") : current;
+  const { md, fixes } = repairMarkdown(raw);
+  const byKind = {};
+  for (const f of fixes) byKind[f.kind] = (byKind[f.kind] || 0) + 1;
+  if (fixes.length) {
+    if (!ours) fs.writeFileSync(rawPath, raw);
+    fs.writeFileSync(mdPath, md);
+    fs.writeFileSync(
+      markPath,
+      JSON.stringify(
+        { at: new Date().toISOString(), raw_sha1: sha1(raw), repaired_sha1: sha1(md), fixes: byKind, fixes_detail: fixes.slice(0, 200) },
+        null,
+        2
+      )
+    );
+  }
+  return { md, fixes, byKind, rawPath };
+}
 
 // Repair → print → fallback → re-print. The model's text is kept untouched in
 // <name>.raw.md; <name>.repair.json records what changed, so a repair can be

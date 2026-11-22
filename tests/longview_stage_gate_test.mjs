@@ -179,4 +179,27 @@ assert.equal(g.verdict, "warn");
 assert.match(g.warnings.join(), /1 orphan_fence/);
 assert.match(g.warnings.join(), /#189/);
 
+// Book: same defect class (C0 book: 4 ```markdown-wrapped sections). The print
+// step repairs it, and the gate records the repair as a warning.
+const pdfStart = src.indexOf("function runPdfPhase(");
+const pdfBody = src.slice(pdfStart, src.indexOf("\n}\n", pdfStart));
+assert.ok(
+  pdfBody.indexOf("repairFileInPlace(bookMd)") > -1 &&
+    pdfBody.indexOf("repairFileInPlace(bookMd)") < pdfBody.indexOf("mdToHtml("),
+  "book is fence-repaired before it is rendered"
+);
+assert.match(pdfBody, /mdToHtml\(md,/, "the renderer gets the repaired text");
+g = run(
+  "pdf",
+  [
+    { ts: at(180), phase: "pdf", artifact: "md_repair", ok: true, fixes: { unwrapped_prose: 4 } },
+    { ts: at(181), phase: "pdf", ok: true, bytes: 1_000_000 }
+  ],
+  { "B.pdf": fresh }
+);
+assert.equal(g.verdict, "warn");
+assert.match(g.warnings.join(), /4 unwrapped_prose/);
+g = run("pdf", [{ ts: at(181), phase: "pdf", ok: true, bytes: 1_000_000 }], { "B.pdf": fresh });
+assert.equal(g.verdict, "pass", "a clean book stays pass");
+
 console.log("longview_stage_gate_test: all assertions passed");
