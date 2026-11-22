@@ -75,6 +75,10 @@ const env = (k, fallback) => process.env[k] || hostProfile[k] || dotenv[k] || fa
 // just exported process.env vars.
 export const envValue = (key) => env(key, "");
 
+// Where a key resolved from, for honest preflight labels; null = code default.
+export const envSource = (key) =>
+  process.env[key] ? "env" : hostProfile[key] ? "host profile" : dotenv[key] ? ".env" : null;
+
 // Env for spawned subprocesses (python benny_cli.py etc.): .env values as
 // FALLBACK under the caller's real environment. Without this the python side
 // never sees BENNY_LMSTUDIO_ENDPOINTS / BENNY_EMBED_MODEL / … from .env and

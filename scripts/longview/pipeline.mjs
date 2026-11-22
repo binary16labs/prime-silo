@@ -63,7 +63,8 @@ import fs from "fs";
 import path from "path";
 import readline from "readline";
 import { fileURLToPath } from "url";
-import { config, projectRoot, stateDir, workspaceDir, ensureWorkspace } from "./lib/config.mjs";
+import { config, projectRoot, stateDir, workspaceDir, ensureWorkspace, envSource, envValue } from "./lib/config.mjs";
+import { checkModelPins, pinLabel } from "./lib/model_pin.mjs";
 import { writeEdition } from "./lib/edition.mjs";
 import { promptVersion } from "./lib/provenance.mjs";
 import { checkPhase } from "./lib/phase_gate.mjs";
@@ -356,8 +357,19 @@ async function main() {
         "'\x1b[0m"
     );
   }
-  console.log(`  proven agent : \x1b[36m${agent.model}\x1b[0m   (env-pinned: LONGVIEW_MODEL)`);
-  console.log(`  ingest model : ${agent.ingest_model}`);
+  const pinCheck = checkModelPins(
+    plan.map((p) => p.id),
+    envSource
+  );
+  console.log(
+    `  proven agent : \x1b[36m${agent.model}\x1b[0m   (${pinLabel("LONGVIEW_MODEL", envSource("LONGVIEW_MODEL"))})`
+  );
+  console.log(
+    `  ingest model : ${agent.ingest_model}   (${pinLabel("LONGVIEW_INGEST_MODEL", envSource("LONGVIEW_INGEST_MODEL"))})`
+  );
+  console.log(
+    `  benny model  : ${envValue("BENNY_DEFAULT_MODEL") || "(benny picks the first catalog entry)"}   (${pinLabel("BENNY_DEFAULT_MODEL", envSource("BENNY_DEFAULT_MODEL"))})`
+  );
   console.log(`  LM endpoint  : ${agent.endpoint}`);
   console.log(
     `  embedder     : ${agent.embed_model || "(unset)"}${planNeedsEmbed ? "  [needed: model/enrich]" : "  [not needed by this plan]"}`
@@ -430,6 +442,17 @@ async function main() {
       process.exit(4);
     }
   }
+
+  // Preflight the model pins: an unpinned model silently swaps the proven agent.
+  if (!pinCheck.ok) {
+    console.log(`  model pins   : \x1b[31m${pinCheck.problems.length} unpinned\x1b[0m`);
+    if (!has("force")) {
+      console.error(
+        `\n${pinCheck.problems.join("\n")}\nPin it in .env or the environment (the proven agent is set there, never by a code default). --force to override.`
+      );
+      process.exit(4);
+    }
+  } else if (pinCheck.pins.length) console.log("  model pins   : \x1b[32mall pinned ✓\x1b[0m");
 
   const go = await confirm(
     `\nProceed with \x1b[36m${agent.model}\x1b[0m as the proven agent for release ${release.tag}?`

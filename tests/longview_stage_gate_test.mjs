@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import { checkPhase, PHASES_WITH_CONTRACTS } from "../scripts/longview/lib/phase_gate.mjs";
 import { runtimePython, runtimeEnv, checkRuntimePython } from "../scripts/longview/lib/runtime_py.mjs";
 import { repairMarkdown, mermaidBlocks, fallbackDiagrams } from "../scripts/longview/lib/md_fences.mjs";
+import { checkModelPins, pinLabel } from "../scripts/longview/lib/model_pin.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const T0 = Date.parse("2026-11-22T00:00:00Z");
@@ -201,5 +202,25 @@ assert.equal(g.verdict, "warn");
 assert.match(g.warnings.join(), /4 unwrapped_prose/);
 g = run("pdf", [{ ts: at(181), phase: "pdf", ok: true, bytes: 1_000_000 }], { "B.pdf": fresh });
 assert.equal(g.verdict, "pass", "a clean book stays pass");
+
+// ── 10. Model pins (2026-11-22: a worktree with no .env printed "env-pinned"
+//        over a code default, and benny fell back to its first catalog entry). ──
+const none = () => null;
+const all = () => ".env";
+let mp = checkModelPins(["code"], none);
+assert.equal(mp.ok, false, "code shells into benny: an unpinned BENNY_DEFAULT_MODEL stops the run");
+assert.deepEqual(mp.pins.map((p) => p.key), ["BENNY_DEFAULT_MODEL"]);
+mp = checkModelPins(["map", "model", "opus"], none);
+assert.deepEqual(mp.problems.map((p) => p.split(" ")[0]).sort(), ["BENNY_DEFAULT_MODEL", "LONGVIEW_INGEST_MODEL", "LONGVIEW_MODEL"]);
+assert.equal(checkModelPins(["map", "model", "code", "sad", "opus"], all).ok, true);
+assert.equal(checkModelPins(["inventory", "extract", "privacy", "graph", "pdf"], none).ok, true, "no-LLM plans need no pin");
+assert.equal(checkModelPins(["opus"], (k) => (k === "BENNY_DEFAULT_MODEL" ? ".env" : null)).ok, false, "benny's pin does not stand in for the proven agent");
+assert.equal(pinLabel("LONGVIEW_MODEL", null), "⚠ NOT PINNED — code default");
+assert.equal(pinLabel("LONGVIEW_MODEL", ".env"), "pinned: LONGVIEW_MODEL via .env");
+const pipe = fs.readFileSync(path.join(REPO, "scripts/longview/pipeline.mjs"), "utf8");
+assert.doesNotMatch(pipe, /env-pinned: LONGVIEW_MODEL\)/, "the unconditional 'env-pinned' label is back");
+const pinAt = pipe.indexOf("if (!pinCheck.ok)");
+assert.ok(pinAt > 0 && pinAt < pipe.indexOf("const go = await confirm("), "pin preflight runs before the run is confirmed");
+assert.match(pipe.slice(pinAt, pinAt + 500), /process\.exit\(4\)/, "an unpinned model stops the run");
 
 console.log("longview_stage_gate_test: all assertions passed");
