@@ -5,12 +5,30 @@ Implements a lightweight Label Propagation Algorithm (LPA) to identify 'Semantic
 
 import asyncio
 import logging
+import os
 from collections import Counter
 from typing import Any, Dict, List
 
 import anyio
 
 from ..core.graph_db import get_driver
+
+DEFAULT_NAMING_MAX = 40
+
+
+def naming_limit(env=os.environ) -> int:
+    """How many communities get an LLM name per clustering pass (0 = none)."""
+    try:
+        return max(0, int(env.get("BENNY_COMMUNITY_NAMING_MAX", DEFAULT_NAMING_MAX)))
+    except (TypeError, ValueError):
+        return DEFAULT_NAMING_MAX
+
+
+def communities_to_name(community_members: Dict[int, List[str]], limit: int):
+    """The `limit` largest communities with >= 3 members, largest first (ties by id)."""
+    eligible = [(c, m) for c, m in community_members.items() if len(m) >= 3]
+    eligible.sort(key=lambda cm: (-len(cm[1]), str(cm[0])))
+    return eligible[:limit]
 
 logger = logging.getLogger(__name__)
 
@@ -133,14 +151,21 @@ class ClusteringService:
             except Exception as e:
                 logger.error(f"Failed to name community {c_id}: {e}")
 
-        # Execute naming in parallel
-        tasks = [
-            name_and_update(c_id, members)
-            for c_id, members in community_members.items()
-            if len(members) >= 3
-        ]
-        if tasks:
-            await asyncio.gather(*tasks)
+        # Name only the largest communities, one LLM call at a time (T-029). Naming every
+        # community of >= 3 members at once sent thousands of concurrent model calls (to an
+        # unresolved model) and froze the API; BENNY_COMMUNITY_NAMING_MAX=0 turns naming off.
+        chosen = communities_to_name(community_members, naming_limit())
+        sem = asyncio.Semaphore(1)
+
+        async def _one(c_id, members):
+            async with sem:
+                await name_and_update(c_id, members)
+
+        if chosen:
+            logger.info(
+                f"Naming {len(chosen)} of {len(community_members)} communities in {workspace}"
+            )
+            await asyncio.gather(*(_one(c_id, m) for c_id, m in chosen))
 
         # 5. Trigger Gravity Re-Indexing (Phase 4, D.1.3)
         if auto_layout:

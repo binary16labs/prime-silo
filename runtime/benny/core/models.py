@@ -3,11 +3,13 @@ Multi-Model Orchestration - LiteLLM integration with local/cloud providers
 """
 
 import datetime
+import functools
 import json
 import logging
 import os
 from typing import Any, Dict, List, Optional
 
+import anyio
 import httpx
 from litellm import completion
 
@@ -467,6 +469,19 @@ def _run_completion(**kwargs):
     return completion(**kwargs)
 
 
+async def _complete_off_loop(**kwargs):
+    """Run the blocking LLM call in a worker thread, never on the event loop.
+
+    Found live 2026-11-22 (T-029): litellm.completion is synchronous, and calling it straight
+    from async call_model froze the whole API for the length of every model call. A clustering
+    pass that names thousands of communities (each a call_model) refused /api/health for an hour
+    and timed out every LONGVIEW code scan. A patched _run_completion may return a coroutine
+    (tests do), so the result is still awaited if needed.
+    """
+    result = await anyio.to_thread.run_sync(functools.partial(_run_completion, **kwargs))
+    return await _await_if_needed(result)
+
+
 def _thinking_disabled(model: str, actual_model: str, workspace_id: str) -> bool:
     """True if the operator explicitly toggled this model to 'off' in the Agents
     screen (manifest model_thinking). Back-compat wrapper around the tri-state
@@ -781,7 +796,7 @@ async def call_model(
                 f"DEBUG: Calling model={model} (step {current_step}) via LiteLLM as {litellm_model} @ {kwargs.get('api_base')}"
             )
 
-            response = await _await_if_needed(_run_completion(**kwargs))
+            response = await _complete_off_loop(**kwargs)
 
             if isinstance(response, str):
                 final_content = response
