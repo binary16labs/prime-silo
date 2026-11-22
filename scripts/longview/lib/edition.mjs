@@ -15,6 +15,37 @@ export const METHODS = {
   book: { id: "ai_vampire_v2", label: "The AI Vampire — V2 method" }
 };
 
+// EP-Y (V8 plan §7): a challenger method runs beside the champion on the same
+// inputs and is listed next to it in LATEST.json — never instead of it. Only a
+// signed promotion (Y5, G3) moves a challenger into METHODS.
+export const CHALLENGER_METHODS = {
+  sad: { id: "togaf_epic_v8", label: "TOGAF EPIC V8 SAD (challenger)" }
+};
+export const ROLES = ["champion", "challenger"];
+
+export function methodFor(kind, role = "champion") {
+  if (!ROLES.includes(role)) throw new Error(`edition role must be champion|challenger, got ${role}`);
+  const m = role === "challenger" ? CHALLENGER_METHODS[kind] : METHODS[kind];
+  if (!m) throw new Error(`no ${role} method for ${kind}`);
+  return m;
+}
+
+/**
+ * Pure: fold one produced deliverable into LATEST.json. The champion entry keeps
+ * its flat fields (readers of the 11-21 format still work); challengers live in
+ * `challengers[]`, one per edition, and never replace the champion.
+ */
+export function foldLatest(latest, kind, entry, role = "champion") {
+  const prev = latest[kind] || {};
+  const challengers = Array.isArray(prev.challengers) ? prev.challengers : [];
+  if (role === "challenger") {
+    const rest = challengers.filter((c) => c.edition !== entry.edition);
+    const { challengers: _drop, ...champion } = prev.edition ? prev : { edition: null, method: null, role: "champion" };
+    return { ...latest, [kind]: { ...champion, challengers: [...rest, { ...entry, role: "challenger" }] } };
+  }
+  return { ...latest, [kind]: { ...entry, role: "champion", challengers } };
+}
+
 const tally = (xs, f) => {
   const o = {};
   for (const x of xs) {
@@ -34,7 +65,8 @@ export function buildEditionManifest({
   cardMeta,
   promptVersion,
   produced,
-  files
+  files,
+  role = "champion"
 }) {
   const carded = items.filter((i) => cardMeta.has(i.id));
   const metas = carded.map((i) => cardMeta.get(i.id));
@@ -42,7 +74,8 @@ export function buildEditionManifest({
     schema: "longview.edition/1",
     edition,
     generated,
-    methods: Object.fromEntries(produced.map((k) => [k, METHODS[k]])),
+    role,
+    methods: Object.fromEntries(produced.map((k) => [k, methodFor(k, role)])),
     code: {
       tag: release?.tag ?? null,
       commit: release?.commit ?? null,
@@ -72,7 +105,8 @@ const sha256 = (p) => crypto.createHash("sha256").update(fs.readFileSync(p)).dig
  * name in data_out and would otherwise be overwritten next run), write MANIFEST.json,
  * and point data_out/LATEST.json at it. Returns the manifest.
  */
-export function writeEdition({ dataOut, opusDir, produced, inventory, cardsDir, ...rest }) {
+export function writeEdition({ dataOut, opusDir, produced, inventory, cardsDir, role = "champion", ...rest }) {
+  for (const k of produced) methodFor(k, role); // refuse an unknown role/method before writing anything
   const editionDir = path.join(dataOut, ...opusDir.split("/"));
   fs.mkdirSync(editionDir, { recursive: true });
   if (produced.includes("sad"))
@@ -99,7 +133,7 @@ export function writeEdition({ dataOut, opusDir, produced, inventory, cardsDir, 
       return { name: f, bytes: fs.statSync(p).size, sha256: sha256(p) };
     });
   const edition = path.basename(editionDir);
-  const manifest = buildEditionManifest({ ...rest, edition, produced, items: inventory, cardMeta, files });
+  const manifest = buildEditionManifest({ ...rest, edition, produced, items: inventory, cardMeta, files, role });
   fs.writeFileSync(path.join(editionDir, "MANIFEST.json"), JSON.stringify(manifest, null, 2));
 
   const latestPath = path.join(dataOut, "LATEST.json");
@@ -110,13 +144,18 @@ export function writeEdition({ dataOut, opusDir, produced, inventory, cardsDir, 
     /* first edition */
   }
   for (const k of produced)
-    latest[k] = {
-      method: METHODS[k].label,
-      edition,
-      generated: manifest.generated,
-      folder: path.relative(dataOut, editionDir).replace(/\\/g, "/"),
-      manifest: path.relative(dataOut, path.join(editionDir, "MANIFEST.json")).replace(/\\/g, "/")
-    };
+    latest = foldLatest(
+      latest,
+      k,
+      {
+        method: methodFor(k, role).label,
+        edition,
+        generated: manifest.generated,
+        folder: path.relative(dataOut, editionDir).replace(/\\/g, "/"),
+        manifest: path.relative(dataOut, path.join(editionDir, "MANIFEST.json")).replace(/\\/g, "/")
+      },
+      role
+    );
   latest.updated = manifest.generated;
   fs.writeFileSync(latestPath, JSON.stringify(latest, null, 2));
   return { manifest, editionDir };

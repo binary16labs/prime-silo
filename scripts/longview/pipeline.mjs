@@ -53,6 +53,9 @@
  *   --max-retries N      max auto-resume retries per phase (default 20)
  *   --recovery-wait-min M  max minutes to wait for infra recovery per wedge (default 90)
  *   --continue-on-error  keep going after a phase fails (default: stop at first failure)
+ *   --cycle              EP-Y Y0: write this run as the next V8 cycle manifest (<ws>/longview/cycles/C<n>.json:
+ *                        outputs O1-O12 judged by stage gates, file hashes, previous cycle). Off by default.
+ *                        LONGVIEW_EDITION_ROLE=challenger lists the edition beside the champion in LATEST.json.
  *   --dry-run            print the resolved plan and config, execute nothing
  *   --yes                skip the interactive proven-agent confirmation (CI / vetted)
  *   --force              proceed even if the LM host preflight probe fails
@@ -66,6 +69,7 @@ import { fileURLToPath } from "url";
 import { config, projectRoot, stateDir, workspaceDir, ensureWorkspace, envSource, envValue } from "./lib/config.mjs";
 import { checkModelPins, pinLabel } from "./lib/model_pin.mjs";
 import { writeEdition } from "./lib/edition.mjs";
+import { buildCycle } from "./lib/cycle.mjs";
 import { promptVersion } from "./lib/provenance.mjs";
 import { checkPhase } from "./lib/phase_gate.mjs";
 import { checkRuntimePython } from "./lib/runtime_py.mjs";
@@ -737,6 +741,7 @@ async function main() {
         produced,
         inventory: inv,
         cardsDir: stateDir("cards"),
+        role: process.env.LONGVIEW_EDITION_ROLE || "champion",
         generated: record.finishedAt,
         release,
         agent,
@@ -755,6 +760,23 @@ async function main() {
     book_dir: workspaceDir("data_out", config.OPUS_DIR)
   };
   persist();
+  // EP-Y Y0: --cycle turns this run into the next cycle manifest. It hashes the run record,
+  // so nothing may change the record after this point. Off by default: ad-hoc and resumed
+  // runs never mint a cycle (a cycle made of several runs: node scripts/longview/cycle.mjs).
+  if (has("cycle")) {
+    try {
+      const { manifest: cm, path: cp } = buildCycle({
+        workspace: workspaceDir(),
+        runFiles: [recordPath],
+        editionDir: record.edition?.dir || null
+      });
+      const tally = Object.entries(cm.summary).map(([k, v]) => `${v} ${k}`).join(", ");
+      console.log(`  cycle        : ${cm.cycle} → ${cp} (${tally})`);
+    } catch (e) {
+      console.error(`  cycle        : ⚠ not written — ${e.message}`);
+      process.exitCode = 1;
+    }
+  }
   writeLive({
     status: failed ? `failed at ${failed}` : "complete",
     current_phase: null,
