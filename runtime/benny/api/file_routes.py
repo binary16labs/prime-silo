@@ -187,39 +187,81 @@ async def list_files(workspace: str = "default"):
         raise HTTPException(500, f"Failed to list files: {str(e)}")
 
 
-@router.get("/recursive-scan")
-async def recursive_scan(workspace: str = "default"):
-    """Recursively scan the entire workspace directory including hidden files."""
-    try:
-        base_dir = get_workspace_path(workspace)
-        if not base_dir.exists():
-            raise HTTPException(404, f"Workspace {workspace} not found")
+def _parse_subdirs(subdirs: str | None) -> list[str] | None:
+    """Comma-separated workspace-relative folders, or None for the whole workspace.
 
-        all_files = []
-        import os
+    Each entry must stay inside the workspace: no absolute paths, no '..'.
+    """
+    if not subdirs:
+        return None
+    wanted: list[str] = []
+    for raw in subdirs.split(","):
+        s = raw.strip().replace("\\", "/")
+        if not s:
+            continue
+        if s.startswith("/") or ":" in s or ".." in s.split("/"):
+            raise HTTPException(400, f"subdirs entry must be workspace-relative: {raw.strip()!r}")
+        wanted.append(s.rstrip("/"))
+    return wanted or None
 
-        from ..core.workspace import WORKSPACE_ROOT
 
-        for root, dirs, files in os.walk(base_dir):
+def _scan_workspace(base_dir: Path, workspace_root: Path, subdirs: list[str] | None) -> list[dict]:
+    """Blocking walk. Always call through asyncio.to_thread, never on the event loop (T-010)."""
+    import os
+
+    tops = [base_dir / s for s in subdirs] if subdirs else [base_dir]
+    out: list[dict] = []
+    for top in tops:
+        if not top.is_dir():
+            continue
+        for root, _dirs, files in os.walk(top):
             for name in files:
                 file_path = Path(root) / name
                 try:
-                    rel_path = file_path.relative_to(base_dir)
-                    all_files.append(
+                    st = file_path.stat()
+                    out.append(
                         {
                             "name": name,
-                            "path": str(rel_path),
-                            "full_path": str(file_path.relative_to(WORKSPACE_ROOT.resolve())),
-                            "size": file_path.stat().st_size,
-                            "modified": file_path.stat().st_mtime,
+                            "path": str(file_path.relative_to(base_dir)),
+                            "full_path": str(file_path.relative_to(workspace_root)),
+                            "size": st.st_size,
+                            "modified": st.st_mtime,
                             "type": file_path.suffix.lower().lstrip(".") or "unknown",
                             "is_hidden": name.startswith("."),
                         }
                     )
                 except Exception:
                     continue
+    return out
 
-        return {"workspace": workspace, "files": all_files, "total": len(all_files)}
+
+@router.get("/recursive-scan")
+async def recursive_scan(workspace: str = "default", subdirs: str | None = None):
+    """Recursively scan the workspace (or only `subdirs`, comma-separated) including hidden files.
+
+    The walk runs in a worker thread so a large workspace cannot stall the
+    server's event loop (health checks, other requests). See T-010.
+    """
+    import asyncio
+
+    from ..core.workspace import WORKSPACE_ROOT
+
+    try:
+        base_dir = get_workspace_path(workspace)
+        if not base_dir.exists():
+            raise HTTPException(404, f"Workspace {workspace} not found")
+        wanted = _parse_subdirs(subdirs)
+        all_files = await asyncio.to_thread(
+            _scan_workspace, base_dir, WORKSPACE_ROOT.resolve(), wanted
+        )
+        return {
+            "workspace": workspace,
+            "subdirs": wanted,
+            "files": all_files,
+            "total": len(all_files),
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Recursive scan failed: {str(e)}")
 

@@ -841,11 +841,13 @@ async def cmd_enrich(args: argparse.Namespace) -> int:  # noqa: C901 — intenti
 
         if tid == "pdf_extract":
             # Recursive scan finds files at ANY depth (handles data_in/staging/*.pdf).
-            # Workspaces with chromadb/ + runs/ can have thousands of files, so 90 s.
+            # Only data_in/ and staging/ are read below, so scan just those (T-010:
+            # a whole-workspace walk of a LONGVIEW workspace took ~6 min).
             try:
                 rr = await client.get(
                     f"{API_BASE}/api/files/recursive-scan", headers=_H,
-                    params={"workspace": args.workspace}, timeout=90.0,
+                    params={"workspace": args.workspace, "subdirs": "data_in,staging"},
+                    timeout=90.0,
                 )
             except httpx.ReadTimeout as e:
                 raise await _diagnose_dead_server(e)
